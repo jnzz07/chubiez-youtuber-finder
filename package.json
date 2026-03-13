@@ -1,0 +1,18 @@
+{
+  "name": "chubiez-youtuber-finder",
+  "version": "1.0.0",
+  "description": "Auto-discover YouTube creators matching Chubiez brand criteria",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^5.0.1",
+    "node-cron": "^3.0.3",
+    "xlsx": "^0.18.5"
+  }
+}
