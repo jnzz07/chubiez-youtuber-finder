@@ -8,13 +8,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:flex;height:100vh;overflow:hidden}
-
 .sidebar{width:240px;min-width:240px;background:#161616;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow-y:auto}
 .sidebar-header{padding:22px 18px 16px;border-bottom:1px solid #2a2a2a}
 .sidebar-logo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .logo-mark{width:32px;height:32px;background:#e53e3e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
 .sidebar-header h1{font-size:13px;font-weight:600;color:#f0f0f0;line-height:1.3}
-.sidebar-header p{font-size:11px;color:#666;margin-top:4px}
 .status-pill{display:inline-flex;align-items:center;gap:5px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:99px;padding:3px 10px;font-size:11px;color:#aaa}
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .dot-red{background:#e53e3e}
@@ -28,30 +26,28 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
 .sidebar-item.active{background:#1e1e1e;color:#f87171;border-left-color:#e53e3e;font-weight:500}
 .badge{background:#222;color:#666;font-size:11px;padding:2px 8px;border-radius:99px}
 .sidebar-item.active .badge{background:#3d1515;color:#f87171}
-
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0f0f0f}
-.topbar{background:#161616;border-bottom:1px solid #2a2a2a;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.topbar{background:#161616;border-bottom:1px solid #2a2a2a;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .topbar-left h2{font-size:17px;font-weight:600;color:#f0f0f0}
 .topbar-left p{font-size:12px;color:#555;margin-top:2px}
-.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .search-wrap{position:relative}
-.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#555;font-size:13px}
-input[type=text]{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px 8px 32px;font-size:13px;color:#f0f0f0;width:220px;outline:none;font-family:'Inter',sans-serif}
+input[type=text]{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;font-size:13px;color:#f0f0f0;width:200px;outline:none;font-family:'Inter',sans-serif}
 input[type=text]:focus{border-color:#e53e3e}
 input[type=text]::placeholder{color:#444}
-.btn{padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s}
+.btn{padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 .btn:hover{background:#2a2a2a;color:#f0f0f0}
 .btn-red{background:#e53e3e;color:#fff;border-color:#e53e3e}
 .btn-red:hover{background:#c53030;border-color:#c53030}
 .btn-red:disabled{background:#7a1e1e;border-color:#7a1e1e;color:#f87171;cursor:not-allowed}
-
+.btn-green{background:#1a3a1a;color:#4ade80;border-color:#2a4a2a}
+.btn-green:hover{background:#1e4a1e}
+.download-group{display:flex;gap:6px;align-items:center}
 .content{flex:1;overflow-y:auto;padding:24px 28px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
 .stat{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:16px 18px}
 .stat .lbl{font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
 .stat .val{font-size:26px;font-weight:700;color:#f0f0f0}
-.stat .val span{font-size:13px;font-weight:400;color:#555;margin-left:4px}
-
 .card{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:20px 22px;margin-bottom:14px;display:flex;gap:18px;transition:border-color .15s}
 .card:hover{border-color:#3a3a3a}
 .avatar{width:48px;height:48px;border-radius:12px;background:#3d1515;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#f87171;flex-shrink:0;border:1px solid #5a1e1e}
@@ -66,8 +62,8 @@ input[type=text]::placeholder{color:#444}
 .metric .mv{font-size:14px;font-weight:600;color:#f0f0f0}
 .footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .email-tag{font-size:12px;color:#888;background:#1a1a1a;padding:4px 10px;border-radius:6px;border:1px solid #2a2a2a}
-.ytlink{font-size:12px;color:#f87171;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px}
-.ytlink:hover{color:#fc8181}
+.ytlink{font-size:12px;color:#f87171;text-decoration:none;font-weight:500}
+.ytlink:hover{color:#fc8181;text-decoration:underline}
 .date-lbl{font-size:11px;color:#3a3a3a;margin-left:auto}
 .empty{text-align:center;padding:80px 20px}
 .empty-icon{font-size:40px;margin-bottom:16px;opacity:.3}
@@ -75,7 +71,6 @@ input[type=text]::placeholder{color:#444}
 .empty p{font-size:13px;color:#3a3a3a}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;margin-right:6px;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
-
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
@@ -86,23 +81,19 @@ input[type=text]::placeholder{color:#444}
   <div class="sidebar-header">
     <div class="sidebar-logo">
       <div class="logo-mark">C</div>
-      <div>
-        <h1>Chubiez YouTube<br>Influencer Finder</h1>
-      </div>
+      <div><h1>Chubiez YouTube<br>Influencer Finder</h1></div>
     </div>
-    <div class="status-pill" id="status-pill">
+    <div class="status-pill">
       <span class="dot dot-gray" id="status-dot"></span>
       <span id="status-text">Loading...</span>
     </div>
   </div>
-
   <div class="sidebar-section">
     <div class="sidebar-label">Views</div>
     <div class="sidebar-item active" id="item-all" onclick="selectBatch('all')">
       All creators <span class="badge" id="count-all">0</span>
     </div>
   </div>
-
   <div id="batch-list" class="sidebar-section">
     <div class="sidebar-label">Batches</div>
   </div>
@@ -115,11 +106,11 @@ input[type=text]::placeholder{color:#444}
       <p id="section-sub">0 creators found</p>
     </div>
     <div class="topbar-right">
-      <div class="search-wrap">
-        <span class="search-icon">&#9906;</span>
-        <input type="text" id="search" placeholder="Search name, handle, niche..." oninput="renderCards()"/>
+      <input type="text" id="search" placeholder="Search name, handle, niche..." oninput="renderCards()"/>
+      <div class="download-group">
+        <a id="dl-csv" href="/api/download/csv" class="btn btn-green">&#8681; CSV</a>
+        <a href="/api/download" class="btn">&#8681; Excel</a>
       </div>
-      <a href="/api/download" class="btn">&#8681; Download .xlsx</a>
       <button class="btn btn-red" id="run-btn" onclick="triggerRun()">&#9654; Run now</button>
     </div>
   </div>
@@ -141,19 +132,30 @@ let batches={};
 
 function fmt(n){
   const x=Number(n);
-  if(isNaN(x)||n==null||n==='')return '—';
+  if(isNaN(x)||n==null||n==='')return'—';
   if(x>=1000000)return(x/1000000).toFixed(1)+'M';
   if(x>=1000)return(x/1000).toFixed(1)+'K';
   return Math.round(x).toLocaleString();
 }
 function fmtR(n){
   const x=Number(n);
-  if(isNaN(x))return '—';
+  if(isNaN(x))return'—';
   return(x*100).toFixed(1)+'%';
 }
 function initials(name){
-  if(!name||name==='Unknown')return '?';
+  if(!name||name==='Unknown')return'?';
   return name.slice(0,2).toUpperCase();
+}
+
+function updateCsvLink(){
+  const link=document.getElementById('dl-csv');
+  if(activeBatch==='all'){
+    link.href='/api/download/csv';
+    link.title='Download all creators as CSV';
+  } else {
+    link.href='/api/download/csv?batch='+activeBatch;
+    link.title='Download Batch '+activeBatch+' as CSV';
+  }
 }
 
 function selectBatch(b){
@@ -170,8 +172,9 @@ function selectBatch(b){
     const items=batches[b]||[];
     const date=items[0]?.date_found||items[0]?.['Date Found']||'';
     title.textContent='Batch '+b;
-    sub.textContent=(date?'Found on '+date:'')+' · '+items.length+' creators';
+    sub.textContent=(date?'Found on '+date+' · ':'')+items.length+' creators';
   }
+  updateCsvLink();
   renderCards();
 }
 
@@ -193,7 +196,7 @@ function renderCards(){
     container.innerHTML=`<div class="empty">
       <div class="empty-icon">&#128269;</div>
       <h3>${allResults.length===0?'No creators found yet':'No results match your search'}</h3>
-      <p>${allResults.length===0?'Click "Run now" to start discovering YouTubers':'Try searching by a different name or niche'}</p>
+      <p>${allResults.length===0?'Click "Run now" to start discovering YouTubers':'Try a different search term'}</p>
     </div>`;
     return;
   }
@@ -205,7 +208,7 @@ function renderCards(){
     const niche=r.niche||r['Niche']||'';
     const url=r.channel_url||r['Channel URL']||'';
     const date=r.date_found||r['Date Found']||'';
-    return `<div class="card">
+    return`<div class="card">
       <div class="avatar">${initials(name)}</div>
       <div class="info">
         <div class="name-row">
@@ -236,9 +239,7 @@ function buildSidebar(){
   document.getElementById('count-all').textContent=allResults.length;
   document.getElementById('batches-run').textContent=keys.length;
   const list=document.getElementById('batch-list');
-  const label=list.querySelector('.sidebar-label');
-  list.innerHTML='';
-  list.appendChild(label||Object.assign(document.createElement('div'),{className:'sidebar-label',textContent:'Batches'}));
+  list.innerHTML='<div class="sidebar-label">Batches</div>';
   if(keys.length===0){
     const empty=document.createElement('div');
     empty.style.cssText='padding:6px 18px;font-size:12px;color:#3a3a3a';
@@ -252,7 +253,7 @@ function buildSidebar(){
     div.id='item-batch-'+b;
     div.onclick=()=>selectBatch(b);
     const date=batches[b][0]?.date_found||batches[b][0]?.['Date Found']||'';
-    div.innerHTML=`<span>Batch ${b}${date?'<br><span style="font-size:10px;color:#444;font-weight:400">'+date+'</span>':''}</span><span class="badge">${batches[b].length}</span>`;
+    div.innerHTML=`<span>Batch ${b}${date?`<br><span style="font-size:10px;color:#444;font-weight:400">${date}</span>`:''}</span><span class="badge">${batches[b].length}</span>`;
     list.appendChild(div);
   });
 }

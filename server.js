@@ -69,6 +69,22 @@ app.get('/api/results/all', (req, res) => {
   res.json(getLastResults(10000));
 });
 
+app.get('/api/download/csv', (req, res) => {
+  const batch = req.query.batch;
+  const all = getLastResults(10000);
+  const data = batch ? all.filter(r => String(r.batch_number || r['Batch #']) === String(batch)) : all;
+  if (data.length === 0) return res.status(404).json({ error: 'No results found' });
+  const headers = ['first_name','handle','email','avg_views','avg_likes','avg_comments','like_ratio','comment_ratio','subscriber_count','niche','channel_url','date_found','batch_number'];
+  const csv = [headers.join(','), ...data.map(r => headers.map(h => {
+    const val = r[h] || r[h.split('_').map((w,i) => i===0?w:w[0].toUpperCase()+w.slice(1)).join('')] || '';
+    return `"${String(val).replace(/"/g,'""')}"`;
+  }).join(','))].join('\n');
+  const filename = batch ? `chubiez-batch-${batch}.csv` : 'chubiez-all-creators.csv';
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csv);
+});
+
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
