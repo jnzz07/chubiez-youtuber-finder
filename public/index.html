@@ -3,255 +3,314 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Chubiez YouTuber Finder</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
+<title>Chubiez YouTube Influencer Finder</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f5;color:#111;display:flex;height:100vh;overflow:hidden}
-.sidebar{width:220px;min-width:220px;background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;overflow-y:auto}
-.sidebar-header{padding:20px 16px 12px;border-bottom:1px solid #e5e7eb}
-.sidebar-header h1{font-size:15px;font-weight:600;color:#111}
-.sidebar-header p{font-size:11px;color:#888;margin-top:2px}
-.sidebar-section{padding:8px 0}
-.sidebar-label{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em;padding:6px 16px}
-.sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;cursor:pointer;font-size:13px;color:#444;border-left:3px solid transparent}
-.sidebar-item:hover{background:#f9fafb;color:#111}
-.sidebar-item.active{background:#f0fdf4;color:#16a34a;border-left-color:#16a34a;font-weight:500}
-.sidebar-item .count{background:#f3f4f6;color:#888;font-size:11px;padding:1px 7px;border-radius:99px}
-.sidebar-item.active .count{background:#dcfce7;color:#16a34a}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.topbar-left{display:flex;flex-direction:column}
-.topbar-left h2{font-size:16px;font-weight:600}
-.topbar-left p{font-size:12px;color:#888;margin-top:1px}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.search-input{border:1px solid #e5e7eb;border-radius:8px;padding:7px 12px;font-size:13px;width:220px;outline:none;background:#f9fafb}
-.search-input:focus{border-color:#16a34a;background:#fff}
-.btn{padding:7px 16px;border-radius:8px;font-size:13px;cursor:pointer;border:none;font-weight:500}
-.btn-primary{background:#16a34a;color:#fff}
-.btn-primary:hover{background:#15803d}
-.btn-primary:disabled{background:#86efac;cursor:not-allowed}
-.btn-outline{background:#fff;color:#444;border:1px solid #e5e7eb}
-.btn-outline:hover{background:#f9fafb}
-.content{flex:1;overflow-y:auto;padding:20px 24px}
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-.stat-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
-.stat-card .label{font-size:11px;color:#888;margin-bottom:4px}
-.stat-card .value{font-size:22px;font-weight:600;color:#111}
-.creator-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start}
-.avatar{width:48px;height:48px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#16a34a;flex-shrink:0}
-.creator-info{flex:1;min-width:0}
-.creator-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-.creator-name{font-size:15px;font-weight:600;color:#111}
-.creator-handle{font-size:13px;color:#888}
-.niche-badge{background:#f0fdf4;color:#16a34a;font-size:11px;padding:2px 9px;border-radius:99px;font-weight:500}
-.creator-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
-.meta-item .meta-label{font-size:10px;color:#aaa;margin-bottom:2px}
-.meta-item .meta-value{font-size:13px;font-weight:500;color:#111}
-.creator-footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.email-tag{font-size:12px;color:#555;background:#f9fafb;padding:3px 10px;border-radius:6px;border:1px solid #e5e7eb}
-.yt-link{font-size:12px;color:#16a34a;text-decoration:none;font-weight:500}
-.yt-link:hover{text-decoration:underline}
-.date-tag{font-size:11px;color:#bbb;margin-left:auto}
-.empty{text-align:center;padding:60px 20px;color:#aaa}
-.empty h3{font-size:16px;margin-bottom:6px;color:#888}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
-.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
-.dot-green{background:#16a34a}
-.dot-gray{background:#d1d5db}
+body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:flex;height:100vh;overflow:hidden}
+
+.sidebar{width:240px;min-width:240px;background:#161616;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-header{padding:22px 18px 16px;border-bottom:1px solid #2a2a2a}
+.sidebar-logo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.logo-mark{width:32px;height:32px;background:#e53e3e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.sidebar-header h1{font-size:13px;font-weight:600;color:#f0f0f0;line-height:1.3}
+.sidebar-header p{font-size:11px;color:#666;margin-top:4px}
+.status-pill{display:inline-flex;align-items:center;gap:5px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:99px;padding:3px 10px;font-size:11px;color:#aaa}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-red{background:#e53e3e}
+.dot-gray{background:#444}
 .dot-orange{background:#f59e0b;animation:pulse 1s ease infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sidebar-section{padding:12px 0 4px}
+.sidebar-label{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.08em;padding:0 18px 6px}
+.sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;cursor:pointer;font-size:13px;color:#888;border-left:2px solid transparent;transition:all .15s}
+.sidebar-item:hover{background:#1e1e1e;color:#f0f0f0}
+.sidebar-item.active{background:#1e1e1e;color:#f87171;border-left-color:#e53e3e;font-weight:500}
+.badge{background:#222;color:#666;font-size:11px;padding:2px 8px;border-radius:99px}
+.sidebar-item.active .badge{background:#3d1515;color:#f87171}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0f0f0f}
+.topbar{background:#161616;border-bottom:1px solid #2a2a2a;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.topbar-left h2{font-size:17px;font-weight:600;color:#f0f0f0}
+.topbar-left p{font-size:12px;color:#555;margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#555;font-size:13px}
+input[type=text]{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px 8px 32px;font-size:13px;color:#f0f0f0;width:220px;outline:none;font-family:'Inter',sans-serif}
+input[type=text]:focus{border-color:#e53e3e}
+input[type=text]::placeholder{color:#444}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s}
+.btn:hover{background:#2a2a2a;color:#f0f0f0}
+.btn-red{background:#e53e3e;color:#fff;border-color:#e53e3e}
+.btn-red:hover{background:#c53030;border-color:#c53030}
+.btn-red:disabled{background:#7a1e1e;border-color:#7a1e1e;color:#f87171;cursor:not-allowed}
+
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.stat{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:16px 18px}
+.stat .lbl{font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.stat .val{font-size:26px;font-weight:700;color:#f0f0f0}
+.stat .val span{font-size:13px;font-weight:400;color:#555;margin-left:4px}
+
+.card{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:20px 22px;margin-bottom:14px;display:flex;gap:18px;transition:border-color .15s}
+.card:hover{border-color:#3a3a3a}
+.avatar{width:48px;height:48px;border-radius:12px;background:#3d1515;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#f87171;flex-shrink:0;border:1px solid #5a1e1e}
+.info{flex:1;min-width:0}
+.name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.name{font-size:15px;font-weight:600;color:#f0f0f0}
+.handle{font-size:13px;color:#555}
+.niche-tag{background:#1e1e1e;color:#f87171;font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #3d1515}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.metric{background:#1a1a1a;border-radius:8px;padding:10px 12px;border:1px solid #222}
+.metric .ml{font-size:10px;color:#555;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.metric .mv{font-size:14px;font-weight:600;color:#f0f0f0}
+.footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.email-tag{font-size:12px;color:#888;background:#1a1a1a;padding:4px 10px;border-radius:6px;border:1px solid #2a2a2a}
+.ytlink{font-size:12px;color:#f87171;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px}
+.ytlink:hover{color:#fc8181}
+.date-lbl{font-size:11px;color:#3a3a3a;margin-left:auto}
+.empty{text-align:center;padding:80px 20px}
+.empty-icon{font-size:40px;margin-bottom:16px;opacity:.3}
+.empty h3{font-size:16px;color:#555;margin-bottom:6px}
+.empty p{font-size:13px;color:#3a3a3a}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#0f0f0f}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const {useState,useEffect,useCallback,useMemo}=React;
-
-function App(){
-  const [status,setStatus]=useState({batchNumber:0,totalFound:0,lastRunAt:null,isRunning:false,hasApiKey:true});
-  const [results,setResults]=useState([]);
-  const [activeBatch,setActiveBatch]=useState('all');
-  const [search,setSearch]=useState('');
-  const [triggering,setTriggering]=useState(false);
-
-  const fetchStatus=useCallback(async()=>{
-    try{const r=await fetch('/api/status');const d=await r.json();setStatus(d);}catch(e){}
-  },[]);
-
-  const fetchResults=useCallback(async()=>{
-    try{const r=await fetch('/api/results/all');const d=await r.json();setResults(Array.isArray(d)?d:[]);}catch(e){}
-  },[]);
-
-  useEffect(()=>{
-    fetchStatus();fetchResults();
-    const t=setInterval(()=>{fetchStatus();fetchResults();},8000);
-    return()=>clearInterval(t);
-  },[fetchStatus,fetchResults]);
-
-  const batches=useMemo(()=>{
-    const map={};
-    results.forEach(r=>{
-      const b=r.batch_number||r['Batch #']||1;
-      if(!map[b])map[b]=[];
-      map[b].push(r);
-    });
-    return map;
-  },[results]);
-
-  const batchKeys=Object.keys(batches).sort((a,b)=>Number(b)-Number(a));
-
-  const activeResults=useMemo(()=>{
-    const base=activeBatch==='all'?results:(batches[activeBatch]||[]);
-    if(!search.trim())return base;
-    const q=search.toLowerCase();
-    return base.filter(r=>{
-      const name=(r.first_name||r['First Name']||'').toLowerCase();
-      const handle=(r.handle||r['Handle']||'').toLowerCase();
-      const email=(r.email||r['Email']||'').toLowerCase();
-      const niche=(r.niche||r['Niche']||'').toLowerCase();
-      return name.includes(q)||handle.includes(q)||email.includes(q)||niche.includes(q);
-    });
-  },[results,batches,activeBatch,search]);
-
-  const handleTrigger=async()=>{
-    setTriggering(true);
-    try{
-      const r=await fetch('/api/trigger',{method:'POST'});
-      const d=await r.json();
-      if(!r.ok)alert('Error: '+d.error);
-      else{fetchStatus();}
-    }catch(e){alert('Connection error: '+e.message);}
-    setTriggering(false);
-  };
-
-  const getInitials=name=>{
-    if(!name||name==='Unknown')return '?';
-    return name.slice(0,2).toUpperCase();
-  };
-
-  const fmt=n=>{
-    if(n==null||n===''||n==='Not listed')return n||'—';
-    const num=Number(n);
-    if(isNaN(num))return n;
-    if(num>=1000000)return (num/1000000).toFixed(1)+'M';
-    if(num>=1000)return (num/1000).toFixed(1)+'K';
-    return Math.round(num).toLocaleString();
-  };
-
-  const fmtRatio=n=>{
-    const num=Number(n);
-    if(isNaN(num))return '—';
-    return (num*100).toFixed(1)+'%';
-  };
-
-  const batchTitle=activeBatch==='all'?'All creators':`Batch ${activeBatch}`;
-  const batchDate=activeBatch!=='all'&&batches[activeBatch]?.[0]?.date_found||batches[activeBatch]?.[0]?.['Date Found']:'';
-
-  return(
-    <>
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <h1>Chubiez finder</h1>
-        <p>
-          <span className={`status-dot ${status.isRunning?'dot-orange':status.hasApiKey?'dot-green':'dot-gray'}`}></span>
-          {status.isRunning?'Running...':status.hasApiKey?'Ready':'No API key'}
-        </p>
-      </div>
-      <div className="sidebar-section">
-        <div className="sidebar-label">Views</div>
-        <div className={`sidebar-item ${activeBatch==='all'?'active':''}`} onClick={()=>setActiveBatch('all')}>
-          All creators <span className="count">{results.length}</span>
-        </div>
-      </div>
-      {batchKeys.length>0&&(
-        <div className="sidebar-section">
-          <div className="sidebar-label">Batches</div>
-          {batchKeys.map(b=>(
-            <div key={b} className={`sidebar-item ${activeBatch===b?'active':''}`} onClick={()=>setActiveBatch(b)}>
-              Batch {b} <span className="count">{batches[b].length}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-
-    <div className="main">
-      <div className="topbar">
-        <div className="topbar-left">
-          <h2>{batchTitle}</h2>
-          <p>{batchDate?`Found on ${batchDate}`:`${activeResults.length} creators`}</p>
-        </div>
-        <div className="topbar-right">
-          <input className="search-input" placeholder="Search name, handle, niche..." value={search} onChange={e=>setSearch(e.target.value)}/>
-          <a href="/api/download" className="btn btn-outline" style={{textDecoration:'none'}}>Download .xlsx</a>
-          <button className="btn btn-primary" onClick={handleTrigger} disabled={triggering||status.isRunning}>
-            {(triggering||status.isRunning)?<><span className="spinner"></span>Running...</>:'Run now'}
-          </button>
-        </div>
-      </div>
-
-      <div className="content">
-        <div className="stats-row">
-          <div className="stat-card"><div className="label">Total found</div><div className="value">{results.length}</div></div>
-          <div className="stat-card"><div className="label">Batches run</div><div className="value">{batchKeys.length||status.batchNumber}</div></div>
-          <div className="stat-card"><div className="label">Showing</div><div className="value">{activeResults.length}</div></div>
-        </div>
-
-        {activeResults.length===0?(
-          <div className="empty">
-            <h3>{results.length===0?'No creators yet':'No results match your search'}</h3>
-            <p>{results.length===0?'Click "Run now" to start finding YouTubers':'Try a different search term'}</p>
-          </div>
-        ):activeResults.map((r,i)=>{
-          const name=r.first_name||r['First Name']||'Unknown';
-          const handle=r.handle||r['Handle']||'';
-          const email=r.email||r['Email']||'Not listed';
-          const avgViews=r.avg_views||r['Avg Views'];
-          const avgLikes=r.avg_likes||r['Avg Likes'];
-          const avgComments=r.avg_comments||r['Avg Comments'];
-          const likeRatio=r.like_ratio||r['Like Ratio'];
-          const commentRatio=r.comment_ratio||r['Comment Ratio'];
-          const subs=r.subscriber_count||r['Subscribers'];
-          const niche=r.niche||r['Niche']||'';
-          const url=r.channel_url||r['Channel URL']||'';
-          const date=r.date_found||r['Date Found']||'';
-          return(
-            <div key={i} className="creator-card">
-              <div className="avatar">{getInitials(name)}</div>
-              <div className="creator-info">
-                <div className="creator-top">
-                  <span className="creator-name">{name}</span>
-                  <span className="creator-handle">{handle}</span>
-                  {niche&&<span className="niche-badge">{niche}</span>}
-                </div>
-                <div className="creator-meta">
-                  <div className="meta-item"><div className="meta-label">Avg views</div><div className="meta-value">{fmt(avgViews)}</div></div>
-                  <div className="meta-item"><div className="meta-label">Avg likes</div><div className="meta-value">{fmt(avgLikes)}</div></div>
-                  <div className="meta-item"><div className="meta-label">Like ratio</div><div className="meta-value">{fmtRatio(likeRatio)}</div></div>
-                  <div className="meta-item"><div className="meta-label">Comment ratio</div><div className="meta-value">{fmtRatio(commentRatio)}</div></div>
-                  <div className="meta-item"><div className="meta-label">Avg comments</div><div className="meta-value">{fmt(avgComments)}</div></div>
-                  <div className="meta-item"><div className="meta-label">Subscribers</div><div className="meta-value">{fmt(subs)}</div></div>
-                </div>
-                <div className="creator-footer">
-                  <span className="email-tag">{email}</span>
-                  {url&&<a className="yt-link" href={url} target="_blank" rel="noopener">View channel →</a>}
-                  {date&&<span className="date-tag">{date}</span>}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="logo-mark">C</div>
+      <div>
+        <h1>Chubiez YouTube<br>Influencer Finder</h1>
       </div>
     </div>
-    </>
-  );
+    <div class="status-pill" id="status-pill">
+      <span class="dot dot-gray" id="status-dot"></span>
+      <span id="status-text">Loading...</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Views</div>
+    <div class="sidebar-item active" id="item-all" onclick="selectBatch('all')">
+      All creators <span class="badge" id="count-all">0</span>
+    </div>
+  </div>
+
+  <div id="batch-list" class="sidebar-section">
+    <div class="sidebar-label">Batches</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2 id="section-title">All creators</h2>
+      <p id="section-sub">0 creators found</p>
+    </div>
+    <div class="topbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">&#9906;</span>
+        <input type="text" id="search" placeholder="Search name, handle, niche..." oninput="renderCards()"/>
+      </div>
+      <a href="/api/download" class="btn">&#8681; Download .xlsx</a>
+      <button class="btn btn-red" id="run-btn" onclick="triggerRun()">&#9654; Run now</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="stats">
+      <div class="stat"><div class="lbl">Total creators</div><div class="val" id="total-found">0</div></div>
+      <div class="stat"><div class="lbl">Batches run</div><div class="val" id="batches-run">0</div></div>
+      <div class="stat"><div class="lbl">Showing</div><div class="val" id="showing">0</div></div>
+    </div>
+    <div id="cards"></div>
+  </div>
+</div>
+
+<script>
+let allResults=[];
+let activeBatch='all';
+let batches={};
+
+function fmt(n){
+  const x=Number(n);
+  if(isNaN(x)||n==null||n==='')return '—';
+  if(x>=1000000)return(x/1000000).toFixed(1)+'M';
+  if(x>=1000)return(x/1000).toFixed(1)+'K';
+  return Math.round(x).toLocaleString();
+}
+function fmtR(n){
+  const x=Number(n);
+  if(isNaN(x))return '—';
+  return(x*100).toFixed(1)+'%';
+}
+function initials(name){
+  if(!name||name==='Unknown')return '?';
+  return name.slice(0,2).toUpperCase();
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+function selectBatch(b){
+  activeBatch=b;
+  document.querySelectorAll('.sidebar-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById(b==='all'?'item-all':'item-batch-'+b);
+  if(el)el.classList.add('active');
+  const title=document.getElementById('section-title');
+  const sub=document.getElementById('section-sub');
+  if(b==='all'){
+    title.textContent='All creators';
+    sub.textContent=allResults.length+' creators found';
+  } else {
+    const items=batches[b]||[];
+    const date=items[0]?.date_found||items[0]?.['Date Found']||'';
+    title.textContent='Batch '+b;
+    sub.textContent=(date?'Found on '+date:'')+' · '+items.length+' creators';
+  }
+  renderCards();
+}
+
+function renderCards(){
+  const search=document.getElementById('search').value.toLowerCase();
+  const base=activeBatch==='all'?allResults:(batches[activeBatch]||[]);
+  const filtered=search?base.filter(r=>{
+    return(r.first_name||r['First Name']||'').toLowerCase().includes(search)||
+      (r.handle||r['Handle']||'').toLowerCase().includes(search)||
+      (r.email||r['Email']||'').toLowerCase().includes(search)||
+      (r.niche||r['Niche']||'').toLowerCase().includes(search);
+  }):base;
+
+  document.getElementById('showing').textContent=filtered.length;
+  document.getElementById('total-found').textContent=allResults.length;
+
+  const container=document.getElementById('cards');
+  if(filtered.length===0){
+    container.innerHTML=`<div class="empty">
+      <div class="empty-icon">&#128269;</div>
+      <h3>${allResults.length===0?'No creators found yet':'No results match your search'}</h3>
+      <p>${allResults.length===0?'Click "Run now" to start discovering YouTubers':'Try searching by a different name or niche'}</p>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML=filtered.map(r=>{
+    const name=r.first_name||r['First Name']||'Unknown';
+    const handle=r.handle||r['Handle']||'';
+    const email=r.email||r['Email']||'Not listed';
+    const niche=r.niche||r['Niche']||'';
+    const url=r.channel_url||r['Channel URL']||'';
+    const date=r.date_found||r['Date Found']||'';
+    return `<div class="card">
+      <div class="avatar">${initials(name)}</div>
+      <div class="info">
+        <div class="name-row">
+          <span class="name">${name}</span>
+          <span class="handle">${handle}</span>
+          ${niche?`<span class="niche-tag">${niche}</span>`:''}
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="ml">Avg views</div><div class="mv">${fmt(r.avg_views||r['Avg Views'])}</div></div>
+          <div class="metric"><div class="ml">Avg likes</div><div class="mv">${fmt(r.avg_likes||r['Avg Likes'])}</div></div>
+          <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(r.avg_comments||r['Avg Comments'])}</div></div>
+          <div class="metric"><div class="ml">Like ratio</div><div class="mv">${fmtR(r.like_ratio||r['Like Ratio'])}</div></div>
+          <div class="metric"><div class="ml">Comment ratio</div><div class="mv">${fmtR(r.comment_ratio||r['Comment Ratio'])}</div></div>
+          <div class="metric"><div class="ml">Subscribers</div><div class="mv">${fmt(r.subscriber_count||r['Subscribers'])}</div></div>
+        </div>
+        <div class="footer">
+          <span class="email-tag">&#9993; ${email}</span>
+          ${url?`<a class="ytlink" href="${url}" target="_blank">&#9654; View channel</a>`:''}
+          ${date?`<span class="date-lbl">${date}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildSidebar(){
+  const keys=Object.keys(batches).sort((a,b)=>Number(b)-Number(a));
+  document.getElementById('count-all').textContent=allResults.length;
+  document.getElementById('batches-run').textContent=keys.length;
+  const list=document.getElementById('batch-list');
+  const label=list.querySelector('.sidebar-label');
+  list.innerHTML='';
+  list.appendChild(label||Object.assign(document.createElement('div'),{className:'sidebar-label',textContent:'Batches'}));
+  if(keys.length===0){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:6px 18px;font-size:12px;color:#3a3a3a';
+    empty.textContent='No batches yet';
+    list.appendChild(empty);
+    return;
+  }
+  keys.forEach(b=>{
+    const div=document.createElement('div');
+    div.className='sidebar-item'+(activeBatch===b?' active':'');
+    div.id='item-batch-'+b;
+    div.onclick=()=>selectBatch(b);
+    const date=batches[b][0]?.date_found||batches[b][0]?.['Date Found']||'';
+    div.innerHTML=`<span>Batch ${b}${date?'<br><span style="font-size:10px;color:#444;font-weight:400">'+date+'</span>':''}</span><span class="badge">${batches[b].length}</span>`;
+    list.appendChild(div);
+  });
+}
+
+async function fetchResults(){
+  try{
+    const r=await fetch('/api/results/all');
+    const d=await r.json();
+    if(Array.isArray(d)){
+      allResults=d;
+      batches={};
+      d.forEach(r=>{
+        const b=r.batch_number||r['Batch #']||1;
+        if(!batches[b])batches[b]=[];
+        batches[b].push(r);
+      });
+      buildSidebar();
+      renderCards();
+    }
+  }catch(e){}
+}
+
+async function fetchStatus(){
+  try{
+    const r=await fetch('/api/status');
+    const d=await r.json();
+    const btn=document.getElementById('run-btn');
+    const dot=document.getElementById('status-dot');
+    const txt=document.getElementById('status-text');
+    if(d.isRunning){
+      btn.disabled=true;
+      btn.innerHTML='<span class="spin"></span>Running...';
+      dot.className='dot dot-orange';
+      txt.textContent='Scraping...';
+    } else {
+      btn.disabled=false;
+      btn.innerHTML='&#9654; Run now';
+      dot.className='dot '+(d.hasApiKey?'dot-red':'dot-gray');
+      txt.textContent=d.hasApiKey?'Ready':'No API key';
+    }
+  }catch(e){}
+}
+
+async function triggerRun(){
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span>Starting...';
+  try{
+    const r=await fetch('/api/trigger',{method:'POST'});
+    const d=await r.json();
+    if(!r.ok)alert('Error: '+d.error);
+    else fetchStatus();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+fetchStatus();
+fetchResults();
+setInterval(()=>{fetchStatus();fetchResults();},8000);
 </script>
 </body>
 </html>
