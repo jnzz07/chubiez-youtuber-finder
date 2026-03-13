@@ -8,69 +8,104 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:flex;height:100vh;overflow:hidden}
-.sidebar{width:240px;min-width:240px;background:#161616;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow-y:auto}
-.sidebar-header{padding:22px 18px 16px;border-bottom:1px solid #2a2a2a}
-.sidebar-logo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.logo-mark{width:32px;height:32px;background:#e53e3e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
-.sidebar-header h1{font-size:13px;font-weight:600;color:#f0f0f0;line-height:1.3}
-.status-pill{display:inline-flex;align-items:center;gap:5px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:99px;padding:3px 10px;font-size:11px;color:#aaa}
+
+/* SIDEBAR */
+.sidebar{width:250px;min-width:250px;background:#161616;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-header{padding:20px 18px 16px;border-bottom:1px solid #2a2a2a}
+.sidebar-logo{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.logo-mark{width:34px;height:34px;background:#e53e3e;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.sidebar-header h1{font-size:13px;font-weight:600;color:#f0f0f0;line-height:1.4}
+.status-pill{display:inline-flex;align-items:center;gap:6px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:99px;padding:4px 11px;font-size:11px;color:#aaa;margin-bottom:10px}
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .dot-red{background:#e53e3e}
 .dot-gray{background:#444}
 .dot-orange{background:#f59e0b;animation:pulse 1s ease infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.sidebar-section{padding:12px 0 4px}
+
+/* COUNTDOWN CARD */
+.countdown-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;margin-bottom:2px}
+.countdown-label{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.countdown-timer{font-size:20px;font-weight:700;color:#e53e3e;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.countdown-sub{font-size:10px;color:#444;margin-top:3px}
+
+.sidebar-section{padding:10px 0 4px}
 .sidebar-label{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.08em;padding:0 18px 6px}
-.sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;cursor:pointer;font-size:13px;color:#888;border-left:2px solid transparent;transition:all .15s}
+.sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;cursor:pointer;font-size:13px;color:#888;border-left:2px solid transparent;transition:all .15s;gap:8px}
 .sidebar-item:hover{background:#1e1e1e;color:#f0f0f0}
 .sidebar-item.active{background:#1e1e1e;color:#f87171;border-left-color:#e53e3e;font-weight:500}
-.badge{background:#222;color:#666;font-size:11px;padding:2px 8px;border-radius:99px}
+.sidebar-item-left{display:flex;flex-direction:column;gap:1px}
+.badge{background:#222;color:#666;font-size:11px;padding:2px 8px;border-radius:99px;flex-shrink:0}
 .sidebar-item.active .badge{background:#3d1515;color:#f87171}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0f0f0f}
-.topbar{background:#161616;border-bottom:1px solid #2a2a2a;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.topbar-left h2{font-size:17px;font-weight:600;color:#f0f0f0}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:#161616;border-bottom:1px solid #2a2a2a;padding:14px 26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topbar-left h2{font-size:16px;font-weight:600}
 .topbar-left p{font-size:12px;color:#555;margin-top:2px}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .search-wrap{position:relative}
-input[type=text]{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;font-size:13px;color:#f0f0f0;width:200px;outline:none;font-family:'Inter',sans-serif}
-input[type=text]:focus{border-color:#e53e3e}
-input[type=text]::placeholder{color:#444}
-.btn{padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.search-wrap input{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px 8px 34px;font-size:13px;color:#f0f0f0;width:210px;outline:none;font-family:'Inter',sans-serif}
+.search-wrap input:focus{border-color:#e53e3e}
+.search-wrap input::placeholder{color:#444}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#555;font-size:13px;pointer-events:none}
+.btn{padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .btn:hover{background:#2a2a2a;color:#f0f0f0}
 .btn-red{background:#e53e3e;color:#fff;border-color:#e53e3e}
 .btn-red:hover{background:#c53030;border-color:#c53030}
 .btn-red:disabled{background:#7a1e1e;border-color:#7a1e1e;color:#f87171;cursor:not-allowed}
 .btn-green{background:#1a3a1a;color:#4ade80;border-color:#2a4a2a}
 .btn-green:hover{background:#1e4a1e}
-.download-group{display:flex;gap:6px;align-items:center}
-.content{flex:1;overflow-y:auto;padding:24px 28px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
-.stat{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:16px 18px}
-.stat .lbl{font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
-.stat .val{font-size:26px;font-weight:700;color:#f0f0f0}
-.card{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:20px 22px;margin-bottom:14px;display:flex;gap:18px;transition:border-color .15s}
-.card:hover{border-color:#3a3a3a}
-.avatar{width:48px;height:48px;border-radius:12px;background:#3d1515;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#f87171;flex-shrink:0;border:1px solid #5a1e1e}
+
+/* SORT/FILTER BAR */
+.filterbar{background:#141414;border-bottom:1px solid #1e1e1e;padding:10px 26px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filter-label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.06em}
+.sort-btn{padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;border:1px solid #222;background:transparent;color:#666;transition:all .15s}
+.sort-btn:hover{background:#1e1e1e;color:#aaa}
+.sort-btn.active{background:#1e1e1e;color:#f87171;border-color:#3d1515}
+.filter-sep{color:#2a2a2a;font-size:14px}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:22px 26px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#e53e3e;opacity:.4}
+.stat .lbl{font-size:10px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.stat .val{font-size:24px;font-weight:700;color:#f0f0f0}
+
+/* CARDS */
+.card{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:18px 20px;margin-bottom:12px;display:flex;gap:16px;transition:all .15s;cursor:default}
+.card:hover{border-color:#3d2020;background:#191919}
+.avatar{width:46px;height:46px;border-radius:11px;background:#3d1515;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#f87171;flex-shrink:0;border:1px solid #5a1e1e}
 .info{flex:1;min-width:0}
 .name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.name{font-size:15px;font-weight:600;color:#f0f0f0}
-.handle{font-size:13px;color:#555}
-.niche-tag{background:#1e1e1e;color:#f87171;font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid #3d1515}
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
-.metric{background:#1a1a1a;border-radius:8px;padding:10px 12px;border:1px solid #222}
-.metric .ml{font-size:10px;color:#555;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
-.metric .mv{font-size:14px;font-weight:600;color:#f0f0f0}
-.footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.email-tag{font-size:12px;color:#888;background:#1a1a1a;padding:4px 10px;border-radius:6px;border:1px solid #2a2a2a}
+.name{font-size:14px;font-weight:600;color:#f0f0f0}
+.handle{font-size:12px;color:#555}
+.niche-tag{background:#1e1e1e;color:#f87171;font-size:10px;padding:2px 9px;border-radius:99px;border:1px solid #3d1515}
+.batch-tag{background:#1a1a2e;color:#818cf8;font-size:10px;padding:2px 9px;border-radius:99px;border:1px solid #2a2a4a}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.metric{background:#1a1a1a;border-radius:8px;padding:9px 11px;border:1px solid #222}
+.metric .ml{font-size:9px;color:#555;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.metric .mv{font-size:13px;font-weight:600;color:#f0f0f0}
+.metric.highlight .mv{color:#f87171}
+.footer-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.email-tag{font-size:11px;color:#888;background:#1a1a1a;padding:3px 9px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;transition:all .15s}
+.email-tag:hover{background:#2a2a2a;color:#f0f0f0}
+.email-copied{color:#4ade80!important;border-color:#2a4a2a!important}
 .ytlink{font-size:12px;color:#f87171;text-decoration:none;font-weight:500}
-.ytlink:hover{color:#fc8181;text-decoration:underline}
-.date-lbl{font-size:11px;color:#3a3a3a;margin-left:auto}
+.ytlink:hover{color:#fc8181}
+.date-lbl{font-size:10px;color:#333;margin-left:auto}
 .empty{text-align:center;padding:80px 20px}
-.empty-icon{font-size:40px;margin-bottom:16px;opacity:.3}
-.empty h3{font-size:16px;color:#555;margin-bottom:6px}
-.empty p{font-size:13px;color:#3a3a3a}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;margin-right:6px;vertical-align:middle}
+.empty-icon{font-size:36px;margin-bottom:14px;opacity:.25}
+.empty h3{font-size:15px;color:#555;margin-bottom:6px}
+.empty p{font-size:12px;color:#333}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;margin-right:5px;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e1e1e;border:1px solid #3a3a3a;border-radius:10px;padding:12px 18px;font-size:13px;color:#f0f0f0;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* SCROLLBAR */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:#0f0f0f}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
@@ -87,11 +122,17 @@ input[type=text]::placeholder{color:#444}
       <span class="dot dot-gray" id="status-dot"></span>
       <span id="status-text">Loading...</span>
     </div>
+    <div class="countdown-card">
+      <div class="countdown-label">Next batch in</div>
+      <div class="countdown-timer" id="countdown">--:--:--</div>
+      <div class="countdown-sub">Runs daily at 2:00 AM UTC</div>
+    </div>
   </div>
+
   <div class="sidebar-section">
     <div class="sidebar-label">Views</div>
     <div class="sidebar-item active" id="item-all" onclick="selectBatch('all')">
-      All creators <span class="badge" id="count-all">0</span>
+      <span>All creators</span><span class="badge" id="count-all">0</span>
     </div>
   </div>
   <div id="batch-list" class="sidebar-section">
@@ -106,13 +147,28 @@ input[type=text]::placeholder{color:#444}
       <p id="section-sub">0 creators found</p>
     </div>
     <div class="topbar-right">
-      <input type="text" id="search" placeholder="Search name, handle, niche..." oninput="renderCards()"/>
-      <div class="download-group">
-        <a id="dl-csv" href="/api/download/csv" class="btn btn-green">&#8681; CSV</a>
-        <a href="/api/download" class="btn">&#8681; Excel</a>
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="search" placeholder="Search name, handle, niche..." oninput="renderCards()"/>
       </div>
-      <button class="btn btn-red" id="run-btn" onclick="triggerRun()">&#9654; Run now</button>
+      <a id="dl-csv" href="/api/download/csv" class="btn btn-green">↓ CSV</a>
+      <a href="/api/download" class="btn">↓ Excel</a>
+      <button class="btn btn-red" id="run-btn" onclick="triggerRun()">▶ Run now</button>
     </div>
+  </div>
+
+  <div class="filterbar">
+    <span class="filter-label">Sort by</span>
+    <button class="sort-btn active" onclick="setSort('date')" id="sort-date">Date</button>
+    <button class="sort-btn" onclick="setSort('views')" id="sort-views">Avg views</button>
+    <button class="sort-btn" onclick="setSort('subs')" id="sort-subs">Subscribers</button>
+    <button class="sort-btn" onclick="setSort('like')" id="sort-like">Like ratio</button>
+    <button class="sort-btn" onclick="setSort('comment')" id="sort-comment">Comment ratio</button>
+    <span class="filter-sep">|</span>
+    <span class="filter-label">Niche</span>
+    <select id="niche-filter" onchange="renderCards()" style="background:#1e1e1e;border:1px solid #222;border-radius:6px;color:#aaa;font-size:12px;padding:4px 8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
+      <option value="">All niches</option>
+    </select>
   </div>
 
   <div class="content">
@@ -120,15 +176,19 @@ input[type=text]::placeholder{color:#444}
       <div class="stat"><div class="lbl">Total creators</div><div class="val" id="total-found">0</div></div>
       <div class="stat"><div class="lbl">Batches run</div><div class="val" id="batches-run">0</div></div>
       <div class="stat"><div class="lbl">Showing</div><div class="val" id="showing">0</div></div>
+      <div class="stat"><div class="lbl">Emails found</div><div class="val" id="emails-found">0</div></div>
     </div>
     <div id="cards"></div>
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
 let allResults=[];
 let activeBatch='all';
 let batches={};
+let sortBy='date';
 
 function fmt(n){
   const x=Number(n);
@@ -147,15 +207,39 @@ function initials(name){
   return name.slice(0,2).toUpperCase();
 }
 
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function copyEmail(email,el){
+  navigator.clipboard.writeText(email).then(()=>{
+    el.textContent='✓ Copied!';
+    el.classList.add('email-copied');
+    setTimeout(()=>{el.textContent='✉ '+email;el.classList.remove('email-copied');},2000);
+    showToast('Email copied to clipboard');
+  });
+}
+
+function setSort(s){
+  sortBy=s;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sort-'+s).classList.add('active');
+  renderCards();
+}
+
 function updateCsvLink(){
   const link=document.getElementById('dl-csv');
-  if(activeBatch==='all'){
-    link.href='/api/download/csv';
-    link.title='Download all creators as CSV';
-  } else {
-    link.href='/api/download/csv?batch='+activeBatch;
-    link.title='Download Batch '+activeBatch+' as CSV';
-  }
+  link.href=activeBatch==='all'?'/api/download/csv':'/api/download/csv?batch='+activeBatch;
+}
+
+function updateNicheFilter(results){
+  const niches=[...new Set(results.map(r=>r.niche||r['Niche']||'').filter(Boolean))].sort();
+  const sel=document.getElementById('niche-filter');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All niches</option>'+niches.map(n=>`<option value="${n}"${n===cur?' selected':''}>${n}</option>`).join('');
 }
 
 function selectBatch(b){
@@ -178,36 +262,54 @@ function selectBatch(b){
   renderCards();
 }
 
-function renderCards(){
+function getSortedFiltered(){
   const search=document.getElementById('search').value.toLowerCase();
+  const nicheFilter=document.getElementById('niche-filter').value;
   const base=activeBatch==='all'?allResults:(batches[activeBatch]||[]);
-  const filtered=search?base.filter(r=>{
-    return(r.first_name||r['First Name']||'').toLowerCase().includes(search)||
+  let filtered=base;
+  if(search){
+    filtered=filtered.filter(r=>(r.first_name||r['First Name']||'').toLowerCase().includes(search)||
       (r.handle||r['Handle']||'').toLowerCase().includes(search)||
       (r.email||r['Email']||'').toLowerCase().includes(search)||
-      (r.niche||r['Niche']||'').toLowerCase().includes(search);
-  }):base;
+      (r.niche||r['Niche']||'').toLowerCase().includes(search));
+  }
+  if(nicheFilter){
+    filtered=filtered.filter(r=>(r.niche||r['Niche']||'')===nicheFilter);
+  }
+  filtered=[...filtered];
+  if(sortBy==='views') filtered.sort((a,b)=>Number(b.avg_views||b['Avg Views']||0)-Number(a.avg_views||a['Avg Views']||0));
+  else if(sortBy==='subs') filtered.sort((a,b)=>Number(b.subscriber_count||b['Subscribers']||0)-Number(a.subscriber_count||a['Subscribers']||0));
+  else if(sortBy==='like') filtered.sort((a,b)=>Number(b.like_ratio||b['Like Ratio']||0)-Number(a.like_ratio||a['Like Ratio']||0));
+  else if(sortBy==='comment') filtered.sort((a,b)=>Number(b.comment_ratio||b['Comment Ratio']||0)-Number(a.comment_ratio||a['Comment Ratio']||0));
+  return filtered;
+}
 
+function renderCards(){
+  const filtered=getSortedFiltered();
   document.getElementById('showing').textContent=filtered.length;
   document.getElementById('total-found').textContent=allResults.length;
+  document.getElementById('emails-found').textContent=allResults.filter(r=>{const e=r.email||r['Email']||'';return e&&e!=='Not listed';}).length;
 
   const container=document.getElementById('cards');
   if(filtered.length===0){
-    container.innerHTML=`<div class="empty">
-      <div class="empty-icon">&#128269;</div>
-      <h3>${allResults.length===0?'No creators found yet':'No results match your search'}</h3>
-      <p>${allResults.length===0?'Click "Run now" to start discovering YouTubers':'Try a different search term'}</p>
-    </div>`;
+    container.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><h3>${allResults.length===0?'No creators found yet':'No results match'}</h3><p>${allResults.length===0?'Click "Run now" to start discovering YouTubers':'Try adjusting your filters'}</p></div>`;
     return;
   }
 
-  container.innerHTML=filtered.map(r=>{
+  container.innerHTML=filtered.map((r,i)=>{
     const name=r.first_name||r['First Name']||'Unknown';
     const handle=r.handle||r['Handle']||'';
-    const email=r.email||r['Email']||'Not listed';
+    const email=r.email||r['Email']||'';
     const niche=r.niche||r['Niche']||'';
     const url=r.channel_url||r['Channel URL']||'';
     const date=r.date_found||r['Date Found']||'';
+    const bnum=r.batch_number||r['Batch #']||'';
+    const views=r.avg_views||r['Avg Views'];
+    const likes=r.avg_likes||r['Avg Likes'];
+    const comments=r.avg_comments||r['Avg Comments'];
+    const lr=r.like_ratio||r['Like Ratio'];
+    const cr=r.comment_ratio||r['Comment Ratio'];
+    const subs=r.subscriber_count||r['Subscribers'];
     return`<div class="card">
       <div class="avatar">${initials(name)}</div>
       <div class="info">
@@ -215,18 +317,19 @@ function renderCards(){
           <span class="name">${name}</span>
           <span class="handle">${handle}</span>
           ${niche?`<span class="niche-tag">${niche}</span>`:''}
+          ${activeBatch==='all'&&bnum?`<span class="batch-tag">Batch ${bnum}</span>`:''}
         </div>
         <div class="metrics">
-          <div class="metric"><div class="ml">Avg views</div><div class="mv">${fmt(r.avg_views||r['Avg Views'])}</div></div>
-          <div class="metric"><div class="ml">Avg likes</div><div class="mv">${fmt(r.avg_likes||r['Avg Likes'])}</div></div>
-          <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(r.avg_comments||r['Avg Comments'])}</div></div>
-          <div class="metric"><div class="ml">Like ratio</div><div class="mv">${fmtR(r.like_ratio||r['Like Ratio'])}</div></div>
-          <div class="metric"><div class="ml">Comment ratio</div><div class="mv">${fmtR(r.comment_ratio||r['Comment Ratio'])}</div></div>
-          <div class="metric"><div class="ml">Subscribers</div><div class="mv">${fmt(r.subscriber_count||r['Subscribers'])}</div></div>
+          <div class="metric${sortBy==='views'?' highlight':''}"><div class="ml">Avg views</div><div class="mv">${fmt(views)}</div></div>
+          <div class="metric"><div class="ml">Avg likes</div><div class="mv">${fmt(likes)}</div></div>
+          <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(comments)}</div></div>
+          <div class="metric${sortBy==='like'?' highlight':''}"><div class="ml">Like ratio</div><div class="mv">${fmtR(lr)}</div></div>
+          <div class="metric${sortBy==='comment'?' highlight':''}"><div class="ml">Comment ratio</div><div class="mv">${fmtR(cr)}</div></div>
+          <div class="metric${sortBy==='subs'?' highlight':''}"><div class="ml">Subscribers</div><div class="mv">${fmt(subs)}</div></div>
         </div>
-        <div class="footer">
-          <span class="email-tag">&#9993; ${email}</span>
-          ${url?`<a class="ytlink" href="${url}" target="_blank">&#9654; View channel</a>`:''}
+        <div class="footer-row">
+          ${email&&email!=='Not listed'?`<span class="email-tag" onclick="copyEmail('${email}',this)">✉ ${email}</span>`:`<span class="email-tag" style="color:#444;cursor:default">No email</span>`}
+          ${url?`<a class="ytlink" href="${url}" target="_blank">▶ View channel</a>`:''}
           ${date?`<span class="date-lbl">${date}</span>`:''}
         </div>
       </div>
@@ -241,11 +344,10 @@ function buildSidebar(){
   const list=document.getElementById('batch-list');
   list.innerHTML='<div class="sidebar-label">Batches</div>';
   if(keys.length===0){
-    const empty=document.createElement('div');
-    empty.style.cssText='padding:6px 18px;font-size:12px;color:#3a3a3a';
-    empty.textContent='No batches yet';
-    list.appendChild(empty);
-    return;
+    const e=document.createElement('div');
+    e.style.cssText='padding:6px 18px;font-size:12px;color:#333';
+    e.textContent='No batches yet';
+    list.appendChild(e);return;
   }
   keys.forEach(b=>{
     const div=document.createElement('div');
@@ -253,9 +355,27 @@ function buildSidebar(){
     div.id='item-batch-'+b;
     div.onclick=()=>selectBatch(b);
     const date=batches[b][0]?.date_found||batches[b][0]?.['Date Found']||'';
-    div.innerHTML=`<span>Batch ${b}${date?`<br><span style="font-size:10px;color:#444;font-weight:400">${date}</span>`:''}</span><span class="badge">${batches[b].length}</span>`;
+    div.innerHTML=`<div class="sidebar-item-left"><span>Batch ${b}</span>${date?`<span style="font-size:10px;color:#444">${date}</span>`:''}</div><span class="badge">${batches[b].length}</span>`;
     list.appendChild(div);
   });
+  updateNicheFilter(allResults);
+}
+
+function startCountdown(){
+  function tick(){
+    const now=new Date();
+    const next=new Date();
+    next.setUTCHours(2,0,0,0);
+    if(next<=now)next.setUTCDate(next.getUTCDate()+1);
+    const diff=next-now;
+    const h=Math.floor(diff/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    const s=Math.floor((diff%60000)/1000);
+    document.getElementById('countdown').textContent=
+      String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }
+  tick();
+  setInterval(tick,1000);
 }
 
 async function fetchResults(){
@@ -263,15 +383,9 @@ async function fetchResults(){
     const r=await fetch('/api/results/all');
     const d=await r.json();
     if(Array.isArray(d)){
-      allResults=d;
-      batches={};
-      d.forEach(r=>{
-        const b=r.batch_number||r['Batch #']||1;
-        if(!batches[b])batches[b]=[];
-        batches[b].push(r);
-      });
-      buildSidebar();
-      renderCards();
+      allResults=d;batches={};
+      d.forEach(r=>{const b=r.batch_number||r['Batch #']||1;if(!batches[b])batches[b]=[];batches[b].push(r);});
+      buildSidebar();renderCards();
     }
   }catch(e){}
 }
@@ -284,13 +398,10 @@ async function fetchStatus(){
     const dot=document.getElementById('status-dot');
     const txt=document.getElementById('status-text');
     if(d.isRunning){
-      btn.disabled=true;
-      btn.innerHTML='<span class="spin"></span>Running...';
-      dot.className='dot dot-orange';
-      txt.textContent='Scraping...';
+      btn.disabled=true;btn.innerHTML='<span class="spin"></span>Running...';
+      dot.className='dot dot-orange';txt.textContent='Scraping...';
     } else {
-      btn.disabled=false;
-      btn.innerHTML='&#9654; Run now';
+      btn.disabled=false;btn.innerHTML='▶ Run now';
       dot.className='dot '+(d.hasApiKey?'dot-red':'dot-gray');
       txt.textContent=d.hasApiKey?'Ready':'No API key';
     }
@@ -299,16 +410,16 @@ async function fetchStatus(){
 
 async function triggerRun(){
   const btn=document.getElementById('run-btn');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spin"></span>Starting...';
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Starting...';
   try{
     const r=await fetch('/api/trigger',{method:'POST'});
     const d=await r.json();
     if(!r.ok)alert('Error: '+d.error);
-    else fetchStatus();
+    else{showToast('Batch started!');fetchStatus();}
   }catch(e){alert('Error: '+e.message);}
 }
 
+startCountdown();
 fetchStatus();
 fetchResults();
 setInterval(()=>{fetchStatus();fetchResults();},8000);
