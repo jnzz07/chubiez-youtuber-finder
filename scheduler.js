@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway.internal') ? false : { rejectUnauthorized: false }
+  ssl: false
 });
 
 const RESULTS_PATH = path.join(__dirname, 'data', 'results.xlsx');
