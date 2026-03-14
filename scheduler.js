@@ -75,7 +75,7 @@ function loadExistingResults() {
 
 Save, then push to GitHub:
 ```
-git add .
+
 git commit -m "fix column headers on read"
 git push
   } catch (e) {
