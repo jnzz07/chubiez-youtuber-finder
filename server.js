@@ -101,6 +101,6 @@ initDb().then(() => {
     startScheduler();
   });
 }).catch(e => {
-  console.error('Failed to init DB:', e.message);
+  console.error('Failed to init DB:', e.message, e.stack);
   process.exit(1);
 });
