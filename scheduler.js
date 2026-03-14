@@ -76,8 +76,6 @@ function loadExistingResults() {
 Save, then push to GitHub:
 ```
 
-git commit -m "fix column headers on read"
-git push
   } catch (e) {
     log(`Error loading existing results: ${e.message}`);
   }
