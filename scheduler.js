@@ -60,10 +60,24 @@ function getState() {
 function loadExistingResults() {
   try {
     if (fs.existsSync(RESULTS_PATH)) {
-      const wb = XLSX.readFile(RESULTS_PATH);
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      return XLSX.utils.sheet_to_json(ws);
-    }
+  const wb = XLSX.readFile(RESULTS_PATH);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  if (rows.length <= 1) return [];
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i]; });
+    return obj;
+  });
+}
+```
+
+Save, then push to GitHub:
+```
+git add .
+git commit -m "fix column headers on read"
+git push
   } catch (e) {
     log(`Error loading existing results: ${e.message}`);
   }
