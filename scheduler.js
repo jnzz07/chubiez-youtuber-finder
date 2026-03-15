@@ -825,6 +825,10 @@ function startScheduler() {
     cron.schedule('0 18 * * *', () => { executeBatch(getApiKeys()); });
 
     log('Scheduled: 02:00, 10:00, 18:00 UTC daily');
+
+    // Run immediately on startup
+    log('Running startup batch...');
+    executeBatch(getApiKeys());
   }).catch(e => log('DB init error: ' + e.message));
 }
 
