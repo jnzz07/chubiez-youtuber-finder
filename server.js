@@ -47,6 +47,22 @@ app.get('/api/logs', (req, res) => {
   res.json({ logs: logs.slice(-limit) });
 });
 
+// ─── DEBUG ───────────────────────────────────────────────────────────────────
+app.get('/api/debug', async (req, res) => {
+  const state = getState();
+  const keys = getApiKeys();
+  const logs = getLogs();
+  res.json({
+    state,
+    keyCount: keys.length,
+    keyNames: Array.from({ length: 10 }, (_, i) => `YOUTUBE_API_KEY_${i + 1}`)
+      .filter(name => !!process.env[name])
+      .concat(process.env.YOUTUBE_API_KEY ? ['YOUTUBE_API_KEY'] : []),
+    dbUrl: process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':***@') : 'NOT SET',
+    recentLogs: logs.slice(-30),
+  });
+});
+
 // ─── TRIGGER ─────────────────────────────────────────────────────────────────
 app.post('/api/trigger', async (req, res) => {
   const state = getState();
