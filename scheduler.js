@@ -494,8 +494,10 @@ async function runBatch(km) {
   const discoveredIds = []; // ordered list of new channel IDs
 
   // ── PHASE 1: SEARCH — collect channel IDs ─────────────────────────────────
-  const queries = shuffle(QUERIES);
-  log(`Phase 1: ${queries.length} queries`);
+  // Cap at 80 queries per batch (100 units each = 8,000 units total for search).
+  // Queries are shuffled so every batch explores a different subset.
+  const queries = shuffle(QUERIES).slice(0, 80);
+  log(`Phase 1: ${queries.length} queries (${QUERIES.length} total available)`);
   liveState.progress = { phase: 'Searching', done: 0, total: queries.length, currentName: '', foundSoFar: 0 };
 
   for (let qi = 0; qi < queries.length; qi++) {
@@ -509,7 +511,7 @@ async function runBatch(km) {
         part: 'snippet',
         q: queries[qi],
         type: 'video',
-        maxResults: 20,
+        maxResults: 50,
         relevanceLanguage: 'en',
         order: 'relevance',
       }, km);
