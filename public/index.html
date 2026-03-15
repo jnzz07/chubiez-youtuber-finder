@@ -3,43 +3,66 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Chubiez YouTube Influencer Finder</title>
+<title>Chubiez YouTube Finder</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:flex;height:100vh;overflow:hidden}
 
-/* SIDEBAR */
-.sidebar{width:250px;min-width:250px;background:#161616;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow-y:auto}
-.sidebar-header{padding:20px 18px 16px;border-bottom:1px solid #2a2a2a}
-.sidebar-logo{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+/* ── SIDEBAR ── */
+.sidebar{width:260px;min-width:260px;background:#161616;border-right:1px solid #222;display:flex;flex-direction:column;overflow:hidden}
+.sidebar-top{flex:1;overflow-y:auto;padding-bottom:4px}
+.sidebar-header{padding:18px 18px 14px;border-bottom:1px solid #222}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .logo-mark{width:34px;height:34px;background:#e53e3e;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
 .sidebar-header h1{font-size:13px;font-weight:600;color:#f0f0f0;line-height:1.4}
-.status-pill{display:inline-flex;align-items:center;gap:6px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:99px;padding:4px 11px;font-size:11px;color:#aaa;margin-bottom:10px}
+.status-pill{display:inline-flex;align-items:center;gap:6px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:99px;padding:4px 11px;font-size:11px;color:#aaa;margin-bottom:8px}
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .dot-red{background:#e53e3e}
 .dot-gray{background:#444}
 .dot-orange{background:#f59e0b;animation:pulse 1s ease infinite}
+.dot-green{background:#4ade80}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.key-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#555;margin-bottom:8px}
+.key-dot{width:5px;height:5px;border-radius:50%;background:#4ade80}
 
-/* COUNTDOWN CARD */
-.countdown-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;margin-bottom:2px}
-.countdown-label{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+/* ── COUNTDOWN ── */
+.countdown-card{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:10px 14px;margin-bottom:4px}
+.countdown-label{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .countdown-timer{font-size:20px;font-weight:700;color:#e53e3e;letter-spacing:.02em;font-variant-numeric:tabular-nums}
-.countdown-sub{font-size:10px;color:#444;margin-top:3px}
+.countdown-sub{font-size:10px;color:#444;margin-top:2px}
 
-.sidebar-section{padding:10px 0 4px}
-.sidebar-label{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.08em;padding:0 18px 6px}
-.sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;cursor:pointer;font-size:13px;color:#888;border-left:2px solid transparent;transition:all .15s;gap:8px}
+/* ── PROGRESS CARD ── */
+.progress-card{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:10px 14px;display:none}
+.progress-card.visible{display:block}
+.progress-phase{font-size:11px;font-weight:600;color:#f59e0b;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.progress-bar-wrap{background:#111;border-radius:99px;height:5px;overflow:hidden;margin-bottom:6px}
+.progress-bar-fill{height:100%;background:#e53e3e;border-radius:99px;transition:width .5s ease;width:0%}
+.progress-name{font-size:10px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.progress-found{font-size:11px;font-weight:600;color:#4ade80}
+
+/* ── SIDEBAR NAV ── */
+.sidebar-section{padding:8px 0 2px}
+.sidebar-label{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.08em;padding:0 18px 5px}
+.sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;cursor:pointer;font-size:13px;color:#888;border-left:2px solid transparent;transition:all .15s;gap:8px}
 .sidebar-item:hover{background:#1e1e1e;color:#f0f0f0}
 .sidebar-item.active{background:#1e1e1e;color:#f87171;border-left-color:#e53e3e;font-weight:500}
 .sidebar-item-left{display:flex;flex-direction:column;gap:1px}
 .badge{background:#222;color:#666;font-size:11px;padding:2px 8px;border-radius:99px;flex-shrink:0}
 .sidebar-item.active .badge{background:#3d1515;color:#f87171}
 
-/* MAIN */
+/* ── LOG PANEL ── */
+.log-panel{border-top:1px solid #222;padding:10px 14px;max-height:160px;overflow-y:auto;flex-shrink:0}
+.log-header{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.log-toggle{cursor:pointer;color:#555;font-size:11px}
+.log-toggle:hover{color:#aaa}
+.log-lines{display:flex;flex-direction:column;gap:2px}
+.log-line{font-size:10px;color:#555;font-family:'Courier New',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.log-line.new{color:#888}
+
+/* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:#161616;border-bottom:1px solid #2a2a2a;padding:14px 26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topbar{background:#161616;border-bottom:1px solid #222;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .topbar-left h2{font-size:16px;font-weight:600}
 .topbar-left p{font-size:12px;color:#555;margin-top:2px}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -48,99 +71,154 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
 .search-wrap input:focus{border-color:#e53e3e}
 .search-wrap input::placeholder{color:#444}
 .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#555;font-size:13px;pointer-events:none}
-.btn{padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn{padding:7px 13px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;border:1px solid #2a2a2a;background:#1e1e1e;color:#aaa;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .btn:hover{background:#2a2a2a;color:#f0f0f0}
 .btn-red{background:#e53e3e;color:#fff;border-color:#e53e3e}
 .btn-red:hover{background:#c53030;border-color:#c53030}
-.btn-red:disabled{background:#7a1e1e;border-color:#7a1e1e;color:#f87171;cursor:not-allowed}
+.btn-red:disabled{background:#7a1e1e;border-color:#7a1e1e;color:#f87171;cursor:not-allowed;opacity:.7}
 .btn-green{background:#1a3a1a;color:#4ade80;border-color:#2a4a2a}
 .btn-green:hover{background:#1e4a1e}
 
-/* SORT/FILTER BAR */
-.filterbar{background:#141414;border-bottom:1px solid #1e1e1e;padding:10px 26px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* ── FILTER BAR ── */
+.filterbar{background:#141414;border-bottom:1px solid #1e1e1e;padding:9px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .filter-label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.06em}
-.sort-btn{padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;border:1px solid #222;background:transparent;color:#666;transition:all .15s}
+.sort-btn{padding:4px 11px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;border:1px solid #222;background:transparent;color:#666;transition:all .15s}
 .sort-btn:hover{background:#1e1e1e;color:#aaa}
 .sort-btn.active{background:#1e1e1e;color:#f87171;border-color:#3d1515}
 .filter-sep{color:#2a2a2a;font-size:14px}
 
-/* CONTENT */
-.content{flex:1;overflow-y:auto;padding:22px 26px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
-.stat{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
-.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#e53e3e;opacity:.4}
-.stat .lbl{font-size:10px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
-.stat .val{font-size:24px;font-weight:700;color:#f0f0f0}
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}}
+.stat{background:#161616;border:1px solid #222;border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#e53e3e;opacity:.35}
+.stat .lbl{font-size:10px;color:#555;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.stat .val{font-size:22px;font-weight:700;color:#f0f0f0}
 
-/* CARDS */
-.card{background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:18px 20px;margin-bottom:12px;display:flex;gap:16px;transition:all .15s;cursor:default}
-.card:hover{border-color:#3d2020;background:#191919}
-.avatar{width:46px;height:46px;border-radius:11px;background:#3d1515;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#f87171;flex-shrink:0;border:1px solid #5a1e1e}
+/* ── CARDS ── */
+.card{background:#161616;border:1px solid #222;border-radius:13px;padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;transition:border-color .15s}
+.card:hover{border-color:#3d2020}
+.avatar{width:48px;height:48px;border-radius:10px;background:#3d1515;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#f87171;flex-shrink:0;border:1px solid #5a1e1e;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:9px}
 .info{flex:1;min-width:0}
-.name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px}
 .name{font-size:14px;font-weight:600;color:#f0f0f0}
 .handle{font-size:12px;color:#555}
-.niche-tag{background:#1e1e1e;color:#f87171;font-size:10px;padding:2px 9px;border-radius:99px;border:1px solid #3d1515}
-.batch-tag{background:#1a1a2e;color:#818cf8;font-size:10px;padding:2px 9px;border-radius:99px;border:1px solid #2a2a4a}
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.metric{background:#1a1a1a;border-radius:8px;padding:9px 11px;border:1px solid #222}
+.niche-tag{background:#1e1e1e;color:#f87171;font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #3d1515}
+.batch-tag{background:#1a1a2e;color:#818cf8;font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #2a2a4a}
+.country-tag{font-size:10px;color:#666;background:#1a1a1a;padding:2px 7px;border-radius:99px;border:1px solid #222}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
+@media(max-width:900px){.metrics{grid-template-columns:repeat(3,1fr)}}
+.metric{background:#1a1a1a;border-radius:7px;padding:8px 10px;border:1px solid #222}
 .metric .ml{font-size:9px;color:#555;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
-.metric .mv{font-size:13px;font-weight:600;color:#f0f0f0}
+.metric .mv{font-size:12px;font-weight:600;color:#d0d0d0}
 .metric.highlight .mv{color:#f87171}
-.footer-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.email-tag{font-size:11px;color:#888;background:#1a1a1a;padding:3px 9px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;transition:all .15s}
+.footer-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.email-tag{font-size:11px;color:#888;background:#1a1a1a;padding:3px 9px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;transition:all .15s;user-select:none}
 .email-tag:hover{background:#2a2a2a;color:#f0f0f0}
-.email-copied{color:#4ade80!important;border-color:#2a4a2a!important}
-.ytlink{font-size:12px;color:#f87171;text-decoration:none;font-weight:500}
-.ytlink:hover{color:#fc8181}
+.email-tag.no-email{color:#3a3a3a;cursor:default;border-color:#1e1e1e}
+.email-copied{color:#4ade80!important;border-color:#2a4a2a!important;background:#112211!important}
+.ytlink{font-size:11px;color:#f87171;text-decoration:none;font-weight:500;padding:3px 9px;background:#1a1a1a;border:1px solid #3d1515;border-radius:6px}
+.ytlink:hover{background:#2a1a1a}
 .date-lbl{font-size:10px;color:#333;margin-left:auto}
+.upload-freq{font-size:10px;color:#555}
+
+/* ── EMPTY ── */
 .empty{text-align:center;padding:80px 20px}
-.empty-icon{font-size:36px;margin-bottom:14px;opacity:.25}
-.empty h3{font-size:15px;color:#555;margin-bottom:6px}
+.empty-icon{font-size:40px;margin-bottom:16px;opacity:.2}
+.empty h3{font-size:15px;color:#555;margin-bottom:8px}
 .empty p{font-size:12px;color:#333}
-.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;margin-right:5px;vertical-align:middle}
+
+/* ── RUNNING BANNER ── */
+.running-banner{background:#1a1500;border-bottom:1px solid #3a3000;padding:9px 24px;display:none;align-items:center;gap:12px}
+.running-banner.visible{display:flex}
+.running-banner .phase-label{font-size:12px;font-weight:600;color:#f59e0b}
+.running-banner .bar-wrap{flex:1;background:#111;border-radius:99px;height:6px;overflow:hidden}
+.running-banner .bar-fill{height:100%;background:linear-gradient(90deg,#e53e3e,#f59e0b);border-radius:99px;transition:width .6s ease;width:0%}
+.running-banner .pct{font-size:11px;color:#888;min-width:36px;text-align:right}
+.running-banner .found-count{font-size:11px;color:#4ade80;min-width:70px}
+.running-banner .current-q{font-size:11px;color:#666;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── MISC ── */
+.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;background:#1e1e1e;border:1px solid #3a3a3a;border-radius:10px;padding:12px 18px;font-size:13px;color:#f0f0f0;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast{position:fixed;bottom:20px;right:20px;background:#1e1e1e;border:1px solid #3a3a3a;border-radius:9px;padding:11px 16px;font-size:13px;color:#f0f0f0;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
-
-/* SCROLLBAR */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:#0f0f0f}
-::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0f0f0f}::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
 </style>
 </head>
 <body>
+
+<!-- SIDEBAR -->
 <div class="sidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-logo">
-      <div class="logo-mark">C</div>
-      <div><h1>Chubiez YouTube<br>Influencer Finder</h1></div>
+  <div class="sidebar-top">
+    <div class="sidebar-header">
+      <div class="logo-row">
+        <div class="logo-mark">C</div>
+        <h1>Chubiez YouTube<br>Influencer Finder</h1>
+      </div>
+      <div class="status-pill">
+        <span class="dot dot-gray" id="status-dot"></span>
+        <span id="status-text">Loading…</span>
+      </div>
+      <div class="key-badge" id="key-badge" style="display:none">
+        <span class="key-dot"></span>
+        <span id="key-count-txt"></span>
+      </div>
+
+      <!-- Countdown to next run -->
+      <div class="countdown-card" id="countdown-card">
+        <div class="countdown-label">Next batch in</div>
+        <div class="countdown-timer" id="countdown">--:--:--</div>
+        <div class="countdown-sub" id="next-run-sub">Runs at 02:00, 10:00 &amp; 18:00 UTC</div>
+      </div>
+
+      <!-- Live progress card (visible when running) -->
+      <div class="progress-card" id="progress-card" style="margin-top:8px">
+        <div class="progress-phase">
+          <span id="prog-phase">–</span>
+          <span class="progress-found" id="prog-found">0 found</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="prog-bar"></div>
+        </div>
+        <div class="progress-name" id="prog-name">–</div>
+      </div>
     </div>
-    <div class="status-pill">
-      <span class="dot dot-gray" id="status-dot"></span>
-      <span id="status-text">Loading...</span>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Views</div>
+      <div class="sidebar-item active" id="item-all" onclick="selectBatch('all')">
+        <span>All creators</span><span class="badge" id="count-all">0</span>
+      </div>
     </div>
-    <div class="countdown-card">
-      <div class="countdown-label">Next batch in</div>
-      <div class="countdown-timer" id="countdown">--:--:--</div>
-      <div class="countdown-sub">Runs daily at 2:00 AM UTC</div>
+    <div id="batch-list" class="sidebar-section">
+      <div class="sidebar-label">Batches</div>
     </div>
   </div>
 
-  <div class="sidebar-section">
-    <div class="sidebar-label">Views</div>
-    <div class="sidebar-item active" id="item-all" onclick="selectBatch('all')">
-      <span>All creators</span><span class="badge" id="count-all">0</span>
+  <!-- Live log panel -->
+  <div class="log-panel" id="log-panel">
+    <div class="log-header">
+      <span>Live log</span>
+      <span class="log-toggle" onclick="toggleLog()">▾ hide</span>
     </div>
-  </div>
-  <div id="batch-list" class="sidebar-section">
-    <div class="sidebar-label">Batches</div>
+    <div class="log-lines" id="log-lines"></div>
   </div>
 </div>
 
+<!-- MAIN -->
 <div class="main">
+  <!-- Running progress banner -->
+  <div class="running-banner" id="running-banner">
+    <span class="phase-label" id="banner-phase">Searching</span>
+    <div class="bar-wrap"><div class="bar-fill" id="banner-bar"></div></div>
+    <span class="pct" id="banner-pct">0%</span>
+    <span class="found-count" id="banner-found">0 found</span>
+    <span class="current-q" id="banner-q"></span>
+  </div>
+
   <div class="topbar">
     <div class="topbar-left">
       <h2 id="section-title">All creators</h2>
@@ -149,7 +227,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
     <div class="topbar-right">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <input type="text" id="search" placeholder="Search name, handle, niche..." oninput="renderCards()"/>
+        <input type="text" id="search" placeholder="Search name, handle, niche, email…" oninput="renderCards()"/>
       </div>
       <a id="dl-csv" href="/api/download/csv" class="btn btn-green">↓ CSV</a>
       <a href="/api/download" class="btn">↓ Excel</a>
@@ -158,16 +236,24 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
   </div>
 
   <div class="filterbar">
-    <span class="filter-label">Sort by</span>
+    <span class="filter-label">Sort</span>
     <button class="sort-btn active" onclick="setSort('date')" id="sort-date">Date</button>
-    <button class="sort-btn" onclick="setSort('views')" id="sort-views">Avg views</button>
+    <button class="sort-btn" onclick="setSort('views')" id="sort-views">Avg Views</button>
     <button class="sort-btn" onclick="setSort('subs')" id="sort-subs">Subscribers</button>
-    <button class="sort-btn" onclick="setSort('like')" id="sort-like">Like ratio</button>
-    <button class="sort-btn" onclick="setSort('comment')" id="sort-comment">Comment ratio</button>
+    <button class="sort-btn" onclick="setSort('like')" id="sort-like">Like %</button>
+    <button class="sort-btn" onclick="setSort('comment')" id="sort-comment">Comment %</button>
+    <button class="sort-btn" onclick="setSort('freq')" id="sort-freq">Upload Freq</button>
     <span class="filter-sep">|</span>
     <span class="filter-label">Niche</span>
     <select id="niche-filter" onchange="renderCards()" style="background:#1e1e1e;border:1px solid #222;border-radius:6px;color:#aaa;font-size:12px;padding:4px 8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
       <option value="">All niches</option>
+    </select>
+    <span class="filter-sep">|</span>
+    <span class="filter-label">Email</span>
+    <select id="email-filter" onchange="renderCards()" style="background:#1e1e1e;border:1px solid #222;border-radius:6px;color:#aaa;font-size:12px;padding:4px 8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
+      <option value="">All</option>
+      <option value="has">Has email</option>
+      <option value="none">No email</option>
     </select>
   </div>
 
@@ -177,6 +263,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
       <div class="stat"><div class="lbl">Batches run</div><div class="val" id="batches-run">0</div></div>
       <div class="stat"><div class="lbl">Showing</div><div class="val" id="showing">0</div></div>
       <div class="stat"><div class="lbl">Emails found</div><div class="val" id="emails-found">0</div></div>
+      <div class="stat"><div class="lbl">Avg views (shown)</div><div class="val" id="avg-views-stat">—</div></div>
     </div>
     <div id="cards"></div>
   </div>
@@ -185,244 +272,379 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
 <div class="toast" id="toast"></div>
 
 <script>
-let allResults=[];
-let activeBatch='all';
-let batches={};
-let sortBy='date';
+let allResults = [];
+let activeBatch = 'all';
+let batches = {};
+let sortBy = 'date';
+let logVisible = true;
+let lastLogCount = 0;
 
-function fmt(n){
-  const x=Number(n);
-  if(isNaN(x)||n==null||n==='')return'—';
-  if(x>=1000000)return(x/1000000).toFixed(1)+'M';
-  if(x>=1000)return(x/1000).toFixed(1)+'K';
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function fmt(n) {
+  const x = Number(n);
+  if (isNaN(x) || n == null || n === '') return '—';
+  if (x >= 1e6) return (x / 1e6).toFixed(1) + 'M';
+  if (x >= 1e3) return (x / 1e3).toFixed(1) + 'K';
   return Math.round(x).toLocaleString();
 }
-function fmtR(n){
-  const x=Number(n);
-  if(isNaN(x))return'—';
-  return(x*100).toFixed(1)+'%';
+function fmtR(n) {
+  const x = Number(n);
+  if (isNaN(x)) return '—';
+  return (x * 100).toFixed(1) + '%';
 }
-function initials(name){
-  if(!name||name==='Unknown')return'?';
-  return name.slice(0,2).toUpperCase();
+function fmtFreq(n) {
+  const x = Number(n);
+  if (isNaN(x) || x === 0) return '—';
+  return x.toFixed(1) + '/mo';
 }
-
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;
+function initials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+function showToast(msg, dur = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
+  setTimeout(() => t.classList.remove('show'), dur);
 }
-
-function copyEmail(email,el){
-  navigator.clipboard.writeText(email).then(()=>{
-    el.textContent='✓ Copied!';
+function copyEmail(email, el) {
+  navigator.clipboard.writeText(email).then(() => {
+    const orig = el.textContent;
+    el.textContent = '✓ Copied!';
     el.classList.add('email-copied');
-    setTimeout(()=>{el.textContent='✉ '+email;el.classList.remove('email-copied');},2000);
-    showToast('Email copied to clipboard');
+    setTimeout(() => { el.textContent = orig; el.classList.remove('email-copied'); }, 2000);
+    showToast('Email copied');
   });
 }
-
-function setSort(s){
-  sortBy=s;
-  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('sort-'+s).classList.add('active');
+function setSort(s) {
+  sortBy = s;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sort-' + s).classList.add('active');
   renderCards();
 }
-
-function updateCsvLink(){
-  const link=document.getElementById('dl-csv');
-  link.href=activeBatch==='all'?'/api/download/csv':'/api/download/csv?batch='+activeBatch;
+function updateCsvLink() {
+  const link = document.getElementById('dl-csv');
+  link.href = activeBatch === 'all' ? '/api/download/csv' : '/api/download/csv?batch=' + activeBatch;
+}
+function updateNicheFilter(results) {
+  const niches = [...new Set(results.map(r => r.niche || '').filter(Boolean))].sort();
+  const sel = document.getElementById('niche-filter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All niches</option>' +
+    niches.map(n => `<option value="${n}"${n === cur ? ' selected' : ''}>${n}</option>`).join('');
+}
+function toggleLog() {
+  logVisible = !logVisible;
+  document.getElementById('log-panel').style.maxHeight = logVisible ? '160px' : '36px';
+  document.querySelector('.log-toggle').textContent = logVisible ? '▾ hide' : '▸ show';
+  document.getElementById('log-lines').style.display = logVisible ? 'flex' : 'none';
 }
 
-function updateNicheFilter(results){
-  const niches=[...new Set(results.map(r=>r.niche||r['Niche']||'').filter(Boolean))].sort();
-  const sel=document.getElementById('niche-filter');
-  const cur=sel.value;
-  sel.innerHTML='<option value="">All niches</option>'+niches.map(n=>`<option value="${n}"${n===cur?' selected':''}>${n}</option>`).join('');
-}
-
-function selectBatch(b){
-  activeBatch=b;
-  document.querySelectorAll('.sidebar-item').forEach(el=>el.classList.remove('active'));
-  const el=document.getElementById(b==='all'?'item-all':'item-batch-'+b);
-  if(el)el.classList.add('active');
-  const title=document.getElementById('section-title');
-  const sub=document.getElementById('section-sub');
-  if(b==='all'){
-    title.textContent='All creators';
-    sub.textContent=allResults.length+' creators found';
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function selectBatch(b) {
+  activeBatch = b;
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(b === 'all' ? 'item-all' : 'item-batch-' + b);
+  if (el) el.classList.add('active');
+  const title = document.getElementById('section-title');
+  const sub = document.getElementById('section-sub');
+  if (b === 'all') {
+    title.textContent = 'All creators';
+    sub.textContent = allResults.length + ' creators found';
   } else {
-    const items=batches[b]||[];
-    const date=items[0]?.date_found||items[0]?.['Date Found']||'';
-    title.textContent='Batch '+b;
-    sub.textContent=(date?'Found on '+date+' · ':'')+items.length+' creators';
+    const items = batches[b] || [];
+    const date = items[0]?.date_found || '';
+    title.textContent = 'Batch ' + b;
+    sub.textContent = (date ? 'Found on ' + date + ' · ' : '') + items.length + ' creators';
   }
   updateCsvLink();
   renderCards();
 }
 
-function getSortedFiltered(){
-  const search=document.getElementById('search').value.toLowerCase();
-  const nicheFilter=document.getElementById('niche-filter').value;
-  const base=activeBatch==='all'?allResults:(batches[activeBatch]||[]);
-  let filtered=base;
-  if(search){
-    filtered=filtered.filter(r=>(r.first_name||r['First Name']||'').toLowerCase().includes(search)||
-      (r.handle||r['Handle']||'').toLowerCase().includes(search)||
-      (r.email||r['Email']||'').toLowerCase().includes(search)||
-      (r.niche||r['Niche']||'').toLowerCase().includes(search));
+function buildSidebar() {
+  const keys = Object.keys(batches).map(Number).sort((a, b) => b - a);
+  document.getElementById('count-all').textContent = allResults.length;
+  document.getElementById('batches-run').textContent = keys.length;
+  const list = document.getElementById('batch-list');
+  list.innerHTML = '<div class="sidebar-label">Batches</div>';
+  if (keys.length === 0) {
+    const e = document.createElement('div');
+    e.style.cssText = 'padding:6px 18px;font-size:12px;color:#333';
+    e.textContent = 'No batches yet';
+    list.appendChild(e);
+    return;
   }
-  if(nicheFilter){
-    filtered=filtered.filter(r=>(r.niche||r['Niche']||'')===nicheFilter);
+  keys.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'sidebar-item' + (activeBatch == b ? ' active' : '');
+    div.id = 'item-batch-' + b;
+    div.onclick = () => selectBatch(b);
+    const date = batches[b][0]?.date_found || '';
+    div.innerHTML = `<div class="sidebar-item-left"><span>Batch ${b}</span>${date ? `<span style="font-size:10px;color:#444">${date}</span>` : ''}</div><span class="badge">${batches[b].length}</span>`;
+    list.appendChild(div);
+  });
+  updateNicheFilter(allResults);
+}
+
+// ── FILTER + SORT ─────────────────────────────────────────────────────────────
+function getSortedFiltered() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const nicheFilter = document.getElementById('niche-filter').value;
+  const emailFilter = document.getElementById('email-filter').value;
+  const base = activeBatch === 'all' ? allResults : (batches[activeBatch] || []);
+  let filtered = base;
+  if (search) {
+    filtered = filtered.filter(r =>
+      (r.first_name || '').toLowerCase().includes(search) ||
+      (r.handle || '').toLowerCase().includes(search) ||
+      (r.email || '').toLowerCase().includes(search) ||
+      (r.niche || '').toLowerCase().includes(search) ||
+      (r.country || '').toLowerCase().includes(search)
+    );
   }
-  filtered=[...filtered];
-  if(sortBy==='views') filtered.sort((a,b)=>Number(b.avg_views||b['Avg Views']||0)-Number(a.avg_views||a['Avg Views']||0));
-  else if(sortBy==='subs') filtered.sort((a,b)=>Number(b.subscriber_count||b['Subscribers']||0)-Number(a.subscriber_count||a['Subscribers']||0));
-  else if(sortBy==='like') filtered.sort((a,b)=>Number(b.like_ratio||b['Like Ratio']||0)-Number(a.like_ratio||a['Like Ratio']||0));
-  else if(sortBy==='comment') filtered.sort((a,b)=>Number(b.comment_ratio||b['Comment Ratio']||0)-Number(a.comment_ratio||a['Comment Ratio']||0));
+  if (nicheFilter) filtered = filtered.filter(r => (r.niche || '') === nicheFilter);
+  if (emailFilter === 'has') filtered = filtered.filter(r => r.email && r.email !== 'Not listed');
+  if (emailFilter === 'none') filtered = filtered.filter(r => !r.email || r.email === 'Not listed');
+  filtered = [...filtered];
+  if (sortBy === 'views') filtered.sort((a, b) => Number(b.avg_views || 0) - Number(a.avg_views || 0));
+  else if (sortBy === 'subs') filtered.sort((a, b) => Number(b.subscriber_count || 0) - Number(a.subscriber_count || 0));
+  else if (sortBy === 'like') filtered.sort((a, b) => Number(b.like_ratio || 0) - Number(a.like_ratio || 0));
+  else if (sortBy === 'comment') filtered.sort((a, b) => Number(b.comment_ratio || 0) - Number(a.comment_ratio || 0));
+  else if (sortBy === 'freq') filtered.sort((a, b) => Number(b.upload_frequency || 0) - Number(a.upload_frequency || 0));
   return filtered;
 }
 
-function renderCards(){
-  const filtered=getSortedFiltered();
-  document.getElementById('showing').textContent=filtered.length;
-  document.getElementById('total-found').textContent=allResults.length;
-  document.getElementById('emails-found').textContent=allResults.filter(r=>{const e=r.email||r['Email']||'';return e&&e!=='Not listed';}).length;
+// ── RENDER CARDS ─────────────────────────────────────────────────────────────
+function renderCards() {
+  const filtered = getSortedFiltered();
+  document.getElementById('showing').textContent = filtered.length;
+  document.getElementById('total-found').textContent = allResults.length;
+  document.getElementById('emails-found').textContent = allResults.filter(r => r.email && r.email !== 'Not listed').length;
 
-  const container=document.getElementById('cards');
-  if(filtered.length===0){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><h3>${allResults.length===0?'No creators found yet':'No results match'}</h3><p>${allResults.length===0?'Click "Run now" to start discovering YouTubers':'Try adjusting your filters'}</p></div>`;
+  // Avg views of shown set
+  const viewsArr = filtered.map(r => Number(r.avg_views || 0)).filter(v => v > 0);
+  const avgV = viewsArr.length ? Math.round(viewsArr.reduce((s, v) => s + v, 0) / viewsArr.length) : 0;
+  document.getElementById('avg-views-stat').textContent = avgV ? fmt(avgV) : '—';
+
+  const container = document.getElementById('cards');
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">${allResults.length === 0 ? '🔍' : '🎯'}</div><h3>${allResults.length === 0 ? 'No creators found yet' : 'No results match'}</h3><p>${allResults.length === 0 ? 'Click "Run now" to start discovering YouTubers' : 'Try adjusting your filters'}</p></div>`;
     return;
   }
 
-  container.innerHTML=filtered.map((r,i)=>{
-    const name=r.first_name||r['First Name']||'Unknown';
-    const handle=r.handle||r['Handle']||'';
-    const email=r.email||r['Email']||'';
-    const niche=r.niche||r['Niche']||'';
-    const url=r.channel_url||r['Channel URL']||'';
-    const date=r.date_found||r['Date Found']||'';
-    const bnum=r.batch_number||r['Batch #']||'';
-    const views=r.avg_views||r['Avg Views'];
-    const likes=r.avg_likes||r['Avg Likes'];
-    const comments=r.avg_comments||r['Avg Comments'];
-    const lr=r.like_ratio||r['Like Ratio'];
-    const cr=r.comment_ratio||r['Comment Ratio'];
-    const subs=r.subscriber_count||r['Subscribers'];
-    return`<div class="card">
-      <div class="avatar">${initials(name)}</div>
+  container.innerHTML = filtered.map(r => {
+    const name = r.first_name || 'Unknown';
+    const handle = r.handle || '';
+    const email = r.email && r.email !== 'Not listed' ? r.email : '';
+    const niche = r.niche || '';
+    const url = r.channel_url || '';
+    const date = r.date_found || '';
+    const bnum = r.batch_number || '';
+    const country = r.country || '';
+    const thumb = r.thumbnail_url || '';
+    const freq = r.upload_frequency;
+
+    const hlView = sortBy === 'views' ? ' highlight' : '';
+    const hlSub = sortBy === 'subs' ? ' highlight' : '';
+    const hlLike = sortBy === 'like' ? ' highlight' : '';
+    const hlCom = sortBy === 'comment' ? ' highlight' : '';
+    const hlFreq = sortBy === 'freq' ? ' highlight' : '';
+
+    const avatarContent = thumb
+      ? `<img src="${thumb}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='${initials(name)}'">`
+      : initials(name);
+
+    return `<div class="card">
+      <div class="avatar">${avatarContent}</div>
       <div class="info">
         <div class="name-row">
-          <span class="name">${name}</span>
-          <span class="handle">${handle}</span>
-          ${niche?`<span class="niche-tag">${niche}</span>`:''}
-          ${activeBatch==='all'&&bnum?`<span class="batch-tag">Batch ${bnum}</span>`:''}
+          <span class="name">${escHtml(name)}</span>
+          <span class="handle">${escHtml(handle)}</span>
+          ${niche ? `<span class="niche-tag">${escHtml(niche)}</span>` : ''}
+          ${activeBatch === 'all' && bnum ? `<span class="batch-tag">Batch ${bnum}</span>` : ''}
+          ${country ? `<span class="country-tag">${escHtml(country)}</span>` : ''}
         </div>
         <div class="metrics">
-          <div class="metric${sortBy==='views'?' highlight':''}"><div class="ml">Avg views</div><div class="mv">${fmt(views)}</div></div>
-          <div class="metric"><div class="ml">Avg likes</div><div class="mv">${fmt(likes)}</div></div>
-          <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(comments)}</div></div>
-          <div class="metric${sortBy==='like'?' highlight':''}"><div class="ml">Like ratio</div><div class="mv">${fmtR(lr)}</div></div>
-          <div class="metric${sortBy==='comment'?' highlight':''}"><div class="ml">Comment ratio</div><div class="mv">${fmtR(cr)}</div></div>
-          <div class="metric${sortBy==='subs'?' highlight':''}"><div class="ml">Subscribers</div><div class="mv">${fmt(subs)}</div></div>
+          <div class="metric${hlView}"><div class="ml">Avg views</div><div class="mv">${fmt(r.avg_views)}</div></div>
+          <div class="metric${hlSub}"><div class="ml">Subscribers</div><div class="mv">${fmt(r.subscriber_count)}</div></div>
+          <div class="metric${hlLike}"><div class="ml">Like ratio</div><div class="mv">${fmtR(r.like_ratio)}</div></div>
+          <div class="metric${hlCom}"><div class="ml">Comment ratio</div><div class="mv">${fmtR(r.comment_ratio)}</div></div>
+          <div class="metric"><div class="ml">Avg likes</div><div class="mv">${fmt(r.avg_likes)}</div></div>
+          <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(r.avg_comments)}</div></div>
+          <div class="metric${hlFreq}"><div class="ml">Uploads/mo</div><div class="mv">${fmtFreq(freq)}</div></div>
+          <div class="metric"><div class="ml">Total views</div><div class="mv">${fmt(r.total_views)}</div></div>
         </div>
         <div class="footer-row">
-          ${email&&email!=='Not listed'?`<span class="email-tag" onclick="copyEmail('${email}',this)">✉ ${email}</span>`:`<span class="email-tag" style="color:#444;cursor:default">No email</span>`}
-          ${url?`<a class="ytlink" href="${url}" target="_blank">▶ View channel</a>`:''}
-          ${date?`<span class="date-lbl">${date}</span>`:''}
+          ${email
+            ? `<span class="email-tag" onclick="copyEmail('${escAttr(email)}',this)">✉ ${escHtml(email)}</span>`
+            : `<span class="email-tag no-email">No email listed</span>`}
+          ${url ? `<a class="ytlink" href="${escAttr(url)}" target="_blank" rel="noopener">▶ Channel</a>` : ''}
+          ${date ? `<span class="date-lbl">${date}</span>` : ''}
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-function buildSidebar(){
-  const keys=Object.keys(batches).sort((a,b)=>Number(b)-Number(a));
-  document.getElementById('count-all').textContent=allResults.length;
-  document.getElementById('batches-run').textContent=keys.length;
-  const list=document.getElementById('batch-list');
-  list.innerHTML='<div class="sidebar-label">Batches</div>';
-  if(keys.length===0){
-    const e=document.createElement('div');
-    e.style.cssText='padding:6px 18px;font-size:12px;color:#333';
-    e.textContent='No batches yet';
-    list.appendChild(e);return;
-  }
-  keys.forEach(b=>{
-    const div=document.createElement('div');
-    div.className='sidebar-item'+(activeBatch===b?' active':'');
-    div.id='item-batch-'+b;
-    div.onclick=()=>selectBatch(b);
-    const date=batches[b][0]?.date_found||batches[b][0]?.['Date Found']||'';
-    div.innerHTML=`<div class="sidebar-item-left"><span>Batch ${b}</span>${date?`<span style="font-size:10px;color:#444">${date}</span>`:''}</div><span class="badge">${batches[b].length}</span>`;
-    list.appendChild(div);
-  });
-  updateNicheFilter(allResults);
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function startCountdown(){
-  function tick(){
-    const now=new Date();
-    const next=new Date();
-    next.setUTCHours(2,0,0,0);
-    if(next<=now)next.setUTCDate(next.getUTCDate()+1);
-    const diff=next-now;
-    const h=Math.floor(diff/3600000);
-    const m=Math.floor((diff%3600000)/60000);
-    const s=Math.floor((diff%60000)/1000);
-    document.getElementById('countdown').textContent=
-      String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+// ── COUNTDOWN ─────────────────────────────────────────────────────────────────
+function getNextRunTime() {
+  const now = new Date();
+  const hours = [2, 10, 18]; // UTC
+  let bestDiff = Infinity;
+  let bestNext = null;
+  for (const h of hours) {
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, 0, 0, 0));
+    if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+    const diff = next - now;
+    if (diff < bestDiff) { bestDiff = diff; bestNext = next; }
+  }
+  return { diff: bestDiff, next: bestNext };
+}
+
+function startCountdown() {
+  function tick() {
+    const { diff, next } = getNextRunTime();
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('countdown').textContent =
+      String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
   }
   tick();
-  setInterval(tick,1000);
+  setInterval(tick, 1000);
 }
 
-async function fetchResults(){
-  try{
-    const r=await fetch('/api/results/all');
-    const d=await r.json();
-    if(Array.isArray(d)){
-      allResults=d;batches={};
-      d.forEach(r=>{const b=r.batch_number||r['Batch #']||1;if(!batches[b])batches[b]=[];batches[b].push(r);});
-      buildSidebar();renderCards();
-    }
-  }catch(e){}
-}
+// ── STATUS POLLING ────────────────────────────────────────────────────────────
+async function fetchStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const btn = document.getElementById('run-btn');
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const banner = document.getElementById('running-banner');
+    const progCard = document.getElementById('progress-card');
 
-async function fetchStatus(){
-  try{
-    const r=await fetch('/api/status');
-    const d=await r.json();
-    const btn=document.getElementById('run-btn');
-    const dot=document.getElementById('status-dot');
-    const txt=document.getElementById('status-text');
-    if(d.isRunning){
-      btn.disabled=true;btn.innerHTML='<span class="spin"></span>Running...';
-      dot.className='dot dot-orange';txt.textContent='Scraping...';
+    if (d.isRunning) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span> Running…';
+      dot.className = 'dot dot-orange';
+      txt.textContent = 'Scraping…';
+      banner.classList.add('visible');
+      progCard.classList.add('visible');
+      document.getElementById('countdown-card').style.display = 'none';
     } else {
-      btn.disabled=false;btn.innerHTML='▶ Run now';
-      dot.className='dot '+(d.hasApiKey?'dot-red':'dot-gray');
-      txt.textContent=d.hasApiKey?'Ready':'No API key';
+      btn.disabled = false;
+      btn.innerHTML = '▶ Run now';
+      dot.className = 'dot ' + (d.hasApiKey ? 'dot-green' : 'dot-gray');
+      txt.textContent = d.hasApiKey ? 'Ready' : 'No API key';
+      banner.classList.remove('visible');
+      progCard.classList.remove('visible');
+      document.getElementById('countdown-card').style.display = 'block';
     }
-  }catch(e){}
+
+    if (d.apiKeyCount > 0) {
+      document.getElementById('key-badge').style.display = 'inline-flex';
+      document.getElementById('key-count-txt').textContent = d.apiKeyCount + ' API key' + (d.apiKeyCount > 1 ? 's' : '') + ' active';
+    }
+  } catch (e) {}
 }
 
-async function triggerRun(){
-  const btn=document.getElementById('run-btn');
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Starting...';
-  try{
-    const r=await fetch('/api/trigger',{method:'POST'});
-    const d=await r.json();
-    if(!r.ok)alert('Error: '+d.error);
-    else{showToast('Batch started!');fetchStatus();}
-  }catch(e){alert('Error: '+e.message);}
+async function fetchProgress() {
+  try {
+    const r = await fetch('/api/progress');
+    const d = await r.json();
+    if (!d || !d.phase) return;
+
+    const pct = d.total > 0 ? Math.round((d.done / d.total) * 100) : 0;
+    document.getElementById('prog-phase').textContent = d.phase;
+    document.getElementById('prog-bar').style.width = pct + '%';
+    document.getElementById('prog-found').textContent = (d.foundSoFar || 0) + ' found';
+    document.getElementById('prog-name').textContent = d.currentName || '';
+
+    document.getElementById('banner-phase').textContent = d.phase;
+    document.getElementById('banner-bar').style.width = pct + '%';
+    document.getElementById('banner-pct').textContent = pct + '%';
+    document.getElementById('banner-found').textContent = (d.foundSoFar || 0) + ' found';
+    document.getElementById('banner-q').textContent = d.currentName || '';
+  } catch (e) {}
 }
 
+async function fetchLogs() {
+  try {
+    const r = await fetch('/api/logs?limit=60');
+    const d = await r.json();
+    if (!d.logs || d.logs.length === lastLogCount) return;
+    lastLogCount = d.logs.length;
+    const container = document.getElementById('log-lines');
+    container.innerHTML = d.logs.slice(-20).map((l, i) =>
+      `<div class="log-line${i >= d.logs.length - 3 ? ' new' : ''}">${escHtml(l)}</div>`
+    ).join('');
+    container.scrollTop = container.scrollHeight;
+  } catch (e) {}
+}
+
+async function fetchResults() {
+  try {
+    const r = await fetch('/api/results/all');
+    const d = await r.json();
+    if (!Array.isArray(d)) return;
+    allResults = d;
+    batches = {};
+    d.forEach(r => {
+      const b = r.batch_number || 1;
+      if (!batches[b]) batches[b] = [];
+      batches[b].push(r);
+    });
+    buildSidebar();
+    renderCards();
+  } catch (e) {}
+}
+
+async function triggerRun() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Starting…';
+  try {
+    const r = await fetch('/api/trigger', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) {
+      showToast('Error: ' + (d.error || 'Unknown error'), 4000);
+      btn.disabled = false;
+      btn.innerHTML = '▶ Run now';
+    } else {
+      showToast('Batch started! ' + (d.message || ''));
+      fetchStatus();
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, 4000);
+    btn.disabled = false;
+    btn.innerHTML = '▶ Run now';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
 startCountdown();
 fetchStatus();
+fetchProgress();
 fetchResults();
-setInterval(()=>{fetchStatus();fetchResults();},8000);
+fetchLogs();
+
+// Status + progress: every 5s
+setInterval(() => { fetchStatus(); fetchProgress(); }, 5000);
+// Results: every 10s
+setInterval(fetchResults, 10000);
+// Logs: every 4s
+setInterval(fetchLogs, 4000);
 </script>
 </body>
 </html>

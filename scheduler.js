@@ -1,169 +1,51 @@
+'use strict';
 require('dotenv').config();
+const axios = require('axios');
 const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
+const cron = require('node-cron');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false
-});
+// ─── LOGGING ─────────────────────────────────────────────────────────────────
+const LOG_FILE = path.join(__dirname, 'logs', 'scheduler.log');
+const MAX_MEM_LOGS = 200;
+let recentLogs = [];
 
-const RESULTS_PATH = path.join(__dirname, 'data', 'results.xlsx');
-
-const log = (msg) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${msg}`);
-  try {
-    const logPath = path.join(__dirname, 'logs', 'scheduler.log');
-    fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
-  } catch(e) {}
-};
-
-// ─── API KEY ROTATION ───────────────────────────────────────────────────────
-function getApiKeys() {
-  const keys = [];
-  for (let i = 1; i <= 10; i++) {
-    const key = process.env[`YOUTUBE_API_KEY_${i}`];
-    if (key) keys.push(key);
-  }
-  // also support legacy single key
-  if (process.env.YOUTUBE_API_KEY && !keys.includes(process.env.YOUTUBE_API_KEY)) {
-    keys.push(process.env.YOUTUBE_API_KEY);
-  }
-  return keys;
+function log(msg) {
+  const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const line = `[${ts}] ${msg}`;
+  console.log(line);
+  recentLogs.push(line);
+  if (recentLogs.length > MAX_MEM_LOGS) recentLogs.shift();
+  try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch (e) {}
 }
 
-let currentKeyIndex = 0;
-let exhaustedKeys = new Set();
+function getLogs() { return [...recentLogs]; }
 
-function getNextKey(keys) {
-  const available = keys.filter((_, i) => !exhaustedKeys.has(i));
-  if (available.length === 0) return null;
-  const idx = keys.indexOf(available[0]);
-  currentKeyIndex = idx;
-  return keys[idx];
-}
+// ─── DATABASE ─────────────────────────────────────────────────────────────────
+let pool = null;
 
-function markKeyExhausted(keys, key) {
-  const idx = keys.indexOf(key);
-  if (idx !== -1) {
-    exhaustedKeys.add(idx);
-    log(`API key ${idx + 1} quota exhausted, switching to next key...`);
+function getPool() {
+  if (!pool) {
+    const url = process.env.DATABASE_URL;
+    if (!url) return null;
+    pool = new Pool({
+      connectionString: url,
+      ssl: url.includes('localhost') ? false : { rejectUnauthorized: false },
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+    pool.on('error', (e) => log('Pool error: ' + e.message));
   }
+  return pool;
 }
 
-// ─── SEARCH QUERIES (100+) ────────────────────────────────────────────────
-const SEARCH_QUERIES = [
-  // Mental health core
-  'mental health tips','anxiety relief','depression support','therapy talk',
-  'mental health vlog','healing journey','mental health awareness','anxiety vlog',
-  'depression recovery','mental health day in my life','therapy session vlog',
-  'coping with anxiety','panic attack help','social anxiety tips',
-  'mental health check in','living with depression','anxiety and depression',
-  'mental health for teens','young adult mental health','college mental health',
-
-  // Self care & wellness
-  'self care routine','self care sunday','self care day vlog',
-  'wellness routine','morning wellness routine','night routine self care',
-  'glow up routine','that girl morning routine','5am morning routine',
-  'healthy habits routine','slow morning routine','reset routine vlog',
-  'mindfulness for beginners','mindfulness meditation','guided meditation',
-  'breathing exercises anxiety','journaling for mental health','gratitude journal',
-  'emotional healing vlog','inner child healing','shadow work journal',
-
-  // ASMR
-  'asmr relaxing','asmr sleep','asmr anxiety relief','asmr soft spoken',
-  'asmr tapping','asmr plushie','asmr stuffed animals','asmr cozy',
-  'asmr night routine','asmr self care','asmr gentle whispering',
-
-  // Cozy lifestyle
-  'cozy vlog','cozy day in my life','cozy lifestyle','cozy night routine',
-  'cottagecore vlog','cottagecore lifestyle','slow living vlog',
-  'hygge lifestyle','cozy autumn vlog','cozy winter vlog',
-  'soft life vlog','soft life aesthetic','cozy apartment vlog',
-  'cozy gaming vlog','cozy study vlog','cozy reading vlog',
-
-  // Kawaii & plush
-  'kawaii collection','kawaii haul','plush collection','stuffed animal collection',
-  'squishmallow collection','sanrio collection','cute plushie haul',
-  'kawaii room tour','kawaii lifestyle','kawaii aesthetic vlog',
-  'plushie unboxing','jellycat collection','build a bear collection',
-
-  // Neurodivergent
-  'adhd vlog','adhd day in my life','adhd tips','living with adhd',
-  'autism vlog','autism day in my life','autistic creator','adhd and anxiety',
-  'neurodivergent vlog','adhd productivity','adhd self care',
-
-  // Chronic illness & invisible illness
-  'chronic illness vlog','chronic pain vlog','invisible illness','fibromyalgia vlog',
-  'chronic fatigue vlog','spoonie life','spoonie vlog','chronic illness day in my life',
-  'living with chronic illness','endometriosis vlog','ibs vlog',
-
-  // Loneliness & introvert
-  'introvert vlog','introvert day in my life','being an introvert',
-  'loneliness vlog','alone time vlog','solo living vlog',
-  'living alone vlog','single life vlog','independent woman vlog',
-
-  // Grief & emotional
-  'grief vlog','loss and healing','heartbreak recovery','breakup vlog',
-  'emotional healing journey','attachment style','anxious attachment',
-  'toxic relationship recovery','narcissist recovery','self love journey',
-
-  // Beauty & soft girl
-  'soft girl makeup','soft girl aesthetic','that girl makeup',
-  'grwm get ready with me','grwm vlog','get ready with me aesthetic',
-  'makeup tutorial beginner','everyday makeup routine','no makeup makeup',
-  'skincare routine','skincare for beginners','glass skin routine',
-  'nail art tutorial','nail art for beginners','aesthetic nail art',
-  'hair tutorial','hair care routine','curly hair routine',
-
-  // Fashion & aesthetic
-  'aesthetic outfits','outfit of the day','fashion haul',
-  'thrift flip','thrift haul','sustainable fashion',
-  'dark feminine aesthetic','dark academia aesthetic','light academia aesthetic',
-  'coquette aesthetic','balletcore aesthetic','fairycore aesthetic',
-  'y2k fashion','y2k aesthetic vlog','vintage fashion haul',
-
-  // Spiritual & tarot
-  'tarot reading','daily tarot','tarot card reading 2026',
-  'astrology reading','birth chart reading','zodiac vlog',
-  'spiritual vlog','spiritual awakening','manifestation routine',
-  'law of attraction','angel numbers','spiritual self care',
-  'crystal collection','crystal healing','witchtok vlog',
-
-  // Books & journaling
-  'booktube','book recommendations','reading vlog',
-  'bullet journal','journal with me','journaling vlog',
-  'stationery haul','stationery collection','desk setup aesthetic',
-  'study with me','study vlog','productive day in my life',
-  'college study vlog','student vlog','university vlog',
-
-  // Hobbies with same demographic
-  'crochet for beginners','crochet vlog','knitting vlog',
-  'embroidery vlog','sewing vlog','craft vlog',
-  'painting vlog','art vlog','sketchbook tour',
-  'anime vlog','anime collection','studio ghibli collection',
-  'pet vlog','cat vlog','dog vlog',
-
-  // Relationship & dating
-  'relationship advice','dating advice for women','situationship vlog',
-  'boundaries in relationships','people pleasing recovery',
-  'codependency healing','therapy helped me',
-
-  // Food & comfort
-  'comfort food recipes','cozy cooking vlog','baking vlog',
-  'cafe vlog','coffee vlog','matcha vlog',
-
-  // College & young adult stress
-  'college stress vlog','college anxiety','first year college vlog',
-  'college day in my life','dorm room tour','apartment tour college',
-  'adulting vlog','quarter life crisis','20s vlog'
-];
-
-// ─── DATABASE ────────────────────────────────────────────────────────────────
 async function initDb() {
-  await pool.query(`
+  const p = getPool();
+  if (!p) { log('No DATABASE_URL — running without persistence'); return; }
+  await p.query(`
     CREATE TABLE IF NOT EXISTS creators (
       id SERIAL PRIMARY KEY,
       first_name TEXT,
@@ -178,300 +60,722 @@ async function initDb() {
       niche TEXT,
       channel_url TEXT,
       date_found TEXT,
-      batch_number INTEGER
+      batch_number INTEGER,
+      video_count INTEGER,
+      total_views BIGINT,
+      country TEXT,
+      upload_frequency NUMERIC,
+      thumbnail_url TEXT
     )
   `);
-  await pool.query(`CREATE TABLE IF NOT EXISTS seen_channels (channel_id TEXT PRIMARY KEY)`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT)`);
-  log('Database initialized');
+  // Add new columns to existing tables safely
+  const newCols = [
+    ['video_count', 'INTEGER'],
+    ['total_views', 'BIGINT'],
+    ['country', 'TEXT'],
+    ['upload_frequency', 'NUMERIC'],
+    ['thumbnail_url', 'TEXT'],
+  ];
+  for (const [col, type] of newCols) {
+    await p.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS ${col} ${type}`).catch(() => {});
+  }
+  await p.query(`CREATE TABLE IF NOT EXISTS seen_channels (channel_id TEXT PRIMARY KEY)`);
+  await p.query(`CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT)`);
+  log('Database ready');
 }
 
-async function getState() {
+const memoryResults = [];
+const memorySeenChannels = new Set();
+
+async function saveCreator(row) {
+  const p = getPool();
+  if (!p) { memoryResults.push(row); return; }
   try {
-    const res = await pool.query('SELECT key, value FROM app_state');
-    const state = { batchNumber: 0, totalFound: 0, lastRunAt: null, isRunning: false };
-    res.rows.forEach(r => {
-      if (r.key === 'batchNumber') state.batchNumber = parseInt(r.value) || 0;
-      if (r.key === 'totalFound') state.totalFound = parseInt(r.value) || 0;
-      if (r.key === 'lastRunAt') state.lastRunAt = r.value;
-      if (r.key === 'isRunning') state.isRunning = r.value === 'true';
-    });
-    return state;
-  } catch(e) { return { batchNumber: 0, totalFound: 0, lastRunAt: null, isRunning: false }; }
+    await p.query(`
+      INSERT INTO creators
+        (first_name,handle,email,avg_views,avg_likes,avg_comments,like_ratio,comment_ratio,
+         subscriber_count,niche,channel_url,date_found,batch_number,video_count,total_views,
+         country,upload_frequency,thumbnail_url)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+      ON CONFLICT (handle) DO UPDATE SET
+        avg_views=EXCLUDED.avg_views, avg_likes=EXCLUDED.avg_likes,
+        avg_comments=EXCLUDED.avg_comments, like_ratio=EXCLUDED.like_ratio,
+        comment_ratio=EXCLUDED.comment_ratio, subscriber_count=EXCLUDED.subscriber_count,
+        email=COALESCE(EXCLUDED.email, creators.email),
+        niche=EXCLUDED.niche, video_count=EXCLUDED.video_count,
+        total_views=EXCLUDED.total_views, country=EXCLUDED.country,
+        upload_frequency=EXCLUDED.upload_frequency, thumbnail_url=EXCLUDED.thumbnail_url
+    `, [row.first_name, row.handle, row.email, row.avg_views, row.avg_likes,
+        row.avg_comments, row.like_ratio, row.comment_ratio, row.subscriber_count,
+        row.niche, row.channel_url, row.date_found, row.batch_number,
+        row.video_count, row.total_views, row.country, row.upload_frequency, row.thumbnail_url]);
+  } catch (e) { log(`Save error ${row.handle}: ${e.message}`); }
 }
 
-async function saveState(state) {
-  for (const [key, value] of Object.entries(state)) {
-    await pool.query(
-      'INSERT INTO app_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
-      [key, String(value)]
-    );
+async function markSeenBatch(channelIds) {
+  const p = getPool();
+  for (const id of channelIds) {
+    if (!p) { memorySeenChannels.add(id); continue; }
+    try { await p.query(`INSERT INTO seen_channels VALUES ($1) ON CONFLICT DO NOTHING`, [id]); }
+    catch (e) {}
   }
 }
 
 async function getSeenChannels() {
+  const p = getPool();
+  if (!p) return new Set(memorySeenChannels);
   try {
-    const res = await pool.query('SELECT channel_id FROM seen_channels');
-    const seen = {};
-    res.rows.forEach(r => { seen[r.channel_id] = true; });
-    return seen;
-  } catch(e) { return {}; }
-}
-
-async function addSeenChannel(channelId) {
-  try {
-    await pool.query('INSERT INTO seen_channels (channel_id) VALUES ($1) ON CONFLICT DO NOTHING', [channelId]);
-  } catch(e) {}
+    const res = await p.query('SELECT channel_id FROM seen_channels');
+    return new Set(res.rows.map(r => r.channel_id));
+  } catch (e) { return new Set(); }
 }
 
 async function getLastResults(limit = 10000) {
+  const p = getPool();
+  if (!p) return memoryResults.slice(-limit);
   try {
-    const res = await pool.query('SELECT * FROM creators ORDER BY batch_number ASC, id ASC LIMIT $1', [limit]);
+    const res = await p.query('SELECT * FROM creators ORDER BY batch_number ASC, id ASC LIMIT $1', [limit]);
     return res.rows;
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
-async function saveCreators(rows) {
-  for (const r of rows) {
+// ─── IN-MEMORY STATE ──────────────────────────────────────────────────────────
+let liveState = {
+  batchNumber: 0, totalFound: 0, lastRunAt: null, isRunning: false,
+  progress: { phase: 'Idle', done: 0, total: 0, currentName: '', foundSoFar: 0 },
+};
+
+async function loadState() {
+  const p = getPool();
+  if (!p) return;
+  try {
+    const res = await p.query('SELECT key, value FROM app_state');
+    for (const row of res.rows) {
+      try { liveState[row.key] = JSON.parse(row.value); } catch (e) { liveState[row.key] = row.value; }
+    }
+  } catch (e) {}
+}
+
+async function persistState(updates) {
+  Object.assign(liveState, updates);
+  const p = getPool();
+  if (!p) return;
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'progress') continue; // Don't persist progress to DB — it's fast-changing
     try {
-      await pool.query(`
-        INSERT INTO creators (first_name, handle, email, avg_views, avg_likes, avg_comments, like_ratio, comment_ratio, subscriber_count, niche, channel_url, date_found, batch_number)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-        ON CONFLICT (handle) DO NOTHING
-      `, [r.first_name, r.handle, r.email, r.avg_views, r.avg_likes, r.avg_comments, r.like_ratio, r.comment_ratio, r.subscriber_count, r.niche, r.channel_url, r.date_found, r.batch_number]);
-    } catch(e) { log('Error saving creator: ' + e.message); }
+      await p.query(
+        `INSERT INTO app_state (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2`,
+        [key, JSON.stringify(value)]
+      );
+    } catch (e) {}
   }
 }
 
-// ─── EXCEL EXPORT ────────────────────────────────────────────────────────────
-function generateExcel(rows) {
-  const COLUMNS = ['first_name','handle','email','avg_views','avg_likes','avg_comments','like_ratio','comment_ratio','subscriber_count','niche','channel_url','date_found','batch_number'];
-  const HEADERS = ['First Name','Handle','Email','Avg Views','Avg Likes','Avg Comments','Like Ratio','Comment Ratio','Subscribers','Niche','Channel URL','Date Found','Batch #'];
-  const wb = XLSX.utils.book_new();
-  const wsData = [HEADERS, ...rows.map(r => COLUMNS.map(c => r[c] || ''))];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = COLUMNS.map(col => {
-    if (col === 'channel_url') return { wch: 40 };
-    if (col === 'email') return { wch: 30 };
-    if (col === 'niche') return { wch: 20 };
-    return { wch: 15 };
-  });
-  XLSX.utils.book_append_sheet(wb, ws, 'YouTubers');
-  return wb;
+function getState() { return { ...liveState }; }
+
+// ─── API KEY MANAGER ──────────────────────────────────────────────────────────
+function getApiKeys() {
+  const keys = [];
+  for (let i = 1; i <= 10; i++) {
+    const k = process.env[`YOUTUBE_API_KEY_${i}`];
+    if (k && k.trim()) keys.push(k.trim());
+  }
+  if (process.env.YOUTUBE_API_KEY) {
+    const k = process.env.YOUTUBE_API_KEY.trim();
+    if (k && !keys.includes(k)) keys.push(k);
+  }
+  return keys;
 }
 
-// ─── YOUTUBE API ─────────────────────────────────────────────────────────────
-async function ytFetch(url, keys) {
-  let key = getNextKey(keys);
-  while (key) {
+class KeyManager {
+  constructor(keys) {
+    this.keys = [...keys];
+    this.idx = 0;
+    this.exhausted = new Set();
+    // Auto-reset at midnight UTC (YouTube quota resets ~midnight Pacific ≈ 07:00-08:00 UTC)
+    // We reset at 08:00 UTC to be safe
+    cron.schedule('0 8 * * *', () => {
+      log('Auto-resetting API key quota tracking');
+      this.exhausted.clear();
+      this.idx = 0;
+    }, { timezone: 'UTC' });
+  }
+
+  get current() { return this.keys[this.idx]; }
+
+  // Round-robin: advance to next available key
+  rotate() {
+    const start = this.idx;
+    let next = (this.idx + 1) % this.keys.length;
+    while (this.exhausted.has(next) && next !== start) {
+      next = (next + 1) % this.keys.length;
+    }
+    if (this.exhausted.has(next)) return null; // All exhausted
+    this.idx = next;
+    return this.keys[this.idx];
+  }
+
+  markExhausted() {
+    log(`Key ${this.idx + 1}/${this.keys.length} exhausted, rotating...`);
+    this.exhausted.add(this.idx);
+    return this.rotate();
+  }
+
+  hasKeys() { return this.exhausted.size < this.keys.length; }
+
+  summary() {
+    return this.keys.map((k, i) => ({
+      n: i + 1,
+      exhausted: this.exhausted.has(i),
+      key: k.slice(0, 10) + '...',
+    }));
+  }
+}
+
+// ─── YOUTUBE API ──────────────────────────────────────────────────────────────
+const YT = 'https://www.googleapis.com/youtube/v3';
+
+async function ytGet(endpoint, params, km, retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    if (!km.hasKeys()) throw new Error('ALL_KEYS_EXHAUSTED');
     try {
-      const res = await fetch(url + `&key=${key}`);
-      const data = await res.json();
-      if (data.error) {
-        if (data.error.code === 403 || data.error.message?.includes('quota')) {
-          markKeyExhausted(keys, key);
-          key = getNextKey(keys);
-          if (!key) return null;
-          continue;
-        }
-        return null;
+      const res = await axios.get(`${YT}/${endpoint}`, {
+        params: { ...params, key: km.current },
+        timeout: 20000,
+      });
+      return res.data;
+    } catch (e) {
+      const status = e.response?.status;
+      const reason = e.response?.data?.error?.errors?.[0]?.reason;
+      if (status === 403 || status === 429 ||
+          reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+        const next = km.markExhausted();
+        if (!next) throw new Error('ALL_KEYS_EXHAUSTED');
+        log(`Switched to key ${km.idx + 1}`);
+        continue; // retry with new key
       }
-      return data;
-    } catch(e) { return null; }
+      if (status === 400 || status === 404) return null; // Bad request — skip
+      if (attempt < retries - 1) {
+        await sleep(800 * (attempt + 1));
+        continue;
+      }
+      return null;
+    }
   }
   return null;
 }
 
-async function searchVideos(query, keys) {
-  const data = await ytFetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=15&order=relevance`, keys);
-  return data?.items || [];
-}
+// ─── SEARCH QUERIES ───────────────────────────────────────────────────────────
+const SEARCH_QUERIES = [
+  // Mental health core
+  'mental health tips for women','anxiety relief vlog','depression recovery journey',
+  'therapy talk vlog','mental health day in my life','healing journey vlog',
+  'mental health awareness creator','emotional wellness vlog','burnout recovery vlog',
+  'stress relief routine','panic attack vlog','ocd awareness vlog',
+  'mental health check in','mental health journey 2025','mental health routine',
+  'coping with anxiety tips','living with depression vlog','social anxiety vlog',
+  'mental health for young adults','college mental health vlog',
 
-async function fetchChannelDetails(channelId, keys) {
-  const data = await ytFetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}`, keys);
-  return data?.items?.[0] || null;
-}
+  // Self care & wellness
+  'self care routine aesthetic','self care sunday vlog','self care day in my life',
+  'self care reset vlog','morning self care routine','nighttime self care',
+  'glow up self care routine','that girl routine','5am morning routine vlog',
+  'healthy habits routine','slow morning routine vlog','rest day vlog',
+  'mindfulness for beginners','mindfulness daily routine','guided meditation vlog',
+  'breathing exercises anxiety','emotional healing journey','inner child healing vlog',
+  'shadow work journal vlog','grounding exercises vlog','self compassion vlog',
 
-async function getChannelVideos(channelId, keys) {
-  const data = await ytFetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&maxResults=10&order=date`, keys);
-  return data?.items || [];
-}
+  // ASMR
+  'asmr relaxing sleep sounds','asmr anxiety relief','asmr soft spoken',
+  'asmr daily routine','asmr plushies','asmr stuffed animals',
+  'asmr cozy vlog','asmr night routine','asmr self care',
+  'asmr gentle whispering','asmr tapping sounds','asmr personal attention',
 
-async function fetchVideoStats(videoIds, keys) {
-  const data = await ytFetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds.join(',')}`, keys);
-  return data?.items || [];
-}
+  // Cozy lifestyle
+  'cozy vlog aesthetic','cozy day in my life','cozy lifestyle vlog',
+  'cozy night routine aesthetic','cottagecore lifestyle vlog','slow living vlog',
+  'hygge lifestyle vlog','cozy autumn vlog','cozy winter vlog',
+  'soft life lifestyle vlog','cozy apartment life','cozy reading vlog',
+  'cozy gaming vlog','cozy study vlog','dark academia vlog',
+  'light academia aesthetic vlog','goblincore vlog','fairycore vlog',
 
-function extractEmail(text) {
-  if (!text) return null;
-  const match = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-  return match ? match[0] : null;
-}
+  // Kawaii & plush
+  'kawaii collection haul','plushie collection vlog','kawaii unboxing',
+  'stuffed animal collection','squishmallow collection','sanrio collection haul',
+  'cute plushie haul','kawaii room tour','kawaii lifestyle vlog',
+  'plushie unboxing asmr','jellycat collection','build a bear vlog',
+  'kawaii stationery haul','cute things haul',
 
-function getNiche(title, description) {
-  const text = ((title || '') + ' ' + (description || '')).toLowerCase();
-  if (text.match(/asmr/)) return 'asmr';
-  if (text.match(/mental health|anxiety|depression|therapy|mindful|wellness|healing/)) return 'mental health';
-  if (text.match(/tarot|astrology|spiritual|manifestation|zodiac|crystal|witch/)) return 'spiritual';
-  if (text.match(/adhd|autism|neurodivergent/)) return 'neurodivergent';
-  if (text.match(/chronic illness|chronic pain|spoonie|fibro/)) return 'chronic illness';
-  if (text.match(/kawaii|plush|squishmallow|sanrio|jellycat/)) return 'kawaii';
-  if (text.match(/cottagecore|cottage|fairy|goblin|dark academia/)) return 'aesthetic';
-  if (text.match(/cozy|hygge|slow living|soft life/)) return 'cozy lifestyle';
-  if (text.match(/makeup|beauty|skincare|nail|grwm|get ready/)) return 'beauty';
-  if (text.match(/fashion|outfit|ootd|style|haul|thrift/)) return 'fashion';
-  if (text.match(/book|read|journal|bullet journal|stationery/)) return 'books & journaling';
-  if (text.match(/crochet|knit|sew|craft|embroid/)) return 'crafts';
-  if (text.match(/anime|ghibli|manga/)) return 'anime';
-  if (text.match(/study|student|college|university|school/)) return 'student life';
-  if (text.match(/self.?care|self love|glow up|that girl/)) return 'self care';
-  if (text.match(/introvert|alone|solo|lonely/)) return 'introvert';
-  if (text.match(/grief|heartbreak|breakup|healing/)) return 'emotional healing';
-  if (text.match(/pet|cat|dog|kitten/)) return 'pets';
-  if (text.match(/coffee|matcha|cafe|bak|cook/)) return 'food & cozy';
+  // Neurodivergent
+  'adhd vlog day in my life','adhd tips women','living with adhd vlog',
+  'autism vlog day in my life','autistic creator lifestyle','adhd and anxiety vlog',
+  'neurodivergent lifestyle vlog','adhd productivity vlog','adhd self care routine',
+  'adhd hyperfocus vlog','autism acceptance vlog',
+
+  // Chronic illness
+  'chronic illness day in my life','chronic pain vlog','invisible illness vlog',
+  'fibromyalgia vlog','chronic fatigue vlog','spoonie lifestyle vlog',
+  'spoonie self care','endometriosis awareness vlog','ibs vlog lifestyle',
+  'autoimmune disease vlog','living with chronic illness',
+
+  // Introvert & solo living
+  'introvert vlog day in my life','introvert lifestyle vlog','living alone vlog',
+  'solo living aesthetic','apartment alone vlog aesthetic','quiet life vlog',
+  'introvert productivity vlog','solitude vlog aesthetic','independent woman vlog',
+  'single life vlog aesthetic',
+
+  // Grief & emotional healing
+  'grief healing vlog','loss and healing journey','heartbreak recovery vlog',
+  'breakup healing vlog','emotional healing journey','toxic relationship recovery',
+  'self love journey vlog','attachment healing vlog',
+
+  // Beauty & makeup
+  'soft girl makeup tutorial','natural makeup look tutorial','no makeup makeup vlog',
+  'drugstore makeup tutorial','makeup for beginners routine','grwm makeup vlog',
+  'soft makeup aesthetic tutorial','clean girl makeup routine',
+  'dewy skin makeup tutorial','everyday makeup routine',
+  'skincare morning routine vlog','skincare nighttime routine',
+  'glass skin routine vlog','acne skincare routine','sensitive skin routine',
+  'gua sha routine','facial massage routine',
+
+  // Hair & nails
+  'natural hair care routine','curly hair routine','protective styles vlog',
+  'nail art tutorial beginner','soft nail art ideas','minimal nail art',
+
+  // Fashion & aesthetic
+  'aesthetic outfits ideas vlog','soft girl outfit ideas','coquette aesthetic outfits',
+  'cottagecore fashion vlog','dark academia outfits','thrift flip fashion',
+  'fashion haul aesthetic vlog','outfit of the day aesthetic','vintage fashion haul',
+  'y2k fashion vlog','sustainable fashion vlog','capsule wardrobe vlog',
+  'slow fashion vlog',
+
+  // Spiritual & tarot
+  'tarot reading for healing','daily tarot pull vlog','tarot for beginners',
+  'astrology self care reading','manifestation morning routine',
+  'law of attraction vlog','crystals for anxiety vlog','spiritual awakening vlog',
+  'shadow work journal vlog','spiritual self care routine','birth chart vlog',
+  'angel numbers vlog',
+
+  // Books & journaling
+  'reading vlog aesthetic','cozy book recommendations','bullet journal setup',
+  'journaling for anxiety vlog','gratitude journal routine','booktok recommendations',
+  'book unboxing haul','journal with me vlog','stationery haul aesthetic',
+  'desk setup aesthetic vlog',
+
+  // Hobbies & crafts
+  'crochet for beginners vlog','crochet vlog aesthetic','knitting vlog cozy',
+  'embroidery vlog aesthetic','paint with me vlog','pottery aesthetic vlog',
+  'art vlog aesthetic','sketchbook tour vlog','diy crafts aesthetic',
+  'candle making vlog','watercolor vlog','journaling art vlog',
+
+  // Gentle fitness
+  'gentle yoga anxiety','yoga for mental health','pilates for beginners vlog',
+  'home workout calm','walking for mental health vlog','movement vlog aesthetic',
+  'stretching routine morning',
+
+  // Food & comfort
+  'comfort food vlog aesthetic','cozy cooking vlog','meal prep vlog aesthetic',
+  'healthy comfort recipes','baking vlog aesthetic','matcha vlog',
+  'coffee routine vlog','cafe study vlog',
+
+  // Productivity & mindset
+  'soft productivity vlog','morning routine that girl','night routine aesthetic',
+  'productivity vlog aesthetic','vision board vlog','goal setting vlog',
+  'study with me vlog','productive day aesthetic',
+
+  // College & young adult
+  'college vlog anxiety','student mental health vlog','college day in my life aesthetic',
+  'dorm room tour aesthetic','adulting vlog','quarter life crisis vlog',
+  'first apartment vlog',
+
+  // Community & relationships
+  'friendship vlog aesthetic','online community vlog','people pleasing recovery',
+  'codependency healing vlog','boundaries vlog',
+
+  // Additional discovery
+  'small creator vlog aesthetic','slow youtube vlog','cozy content creator',
+  'wellness vlog 2025','healing vlog 2025','authentic vlog lifestyle',
+];
+
+// Deduplicate
+const QUERIES = [...new Set(SEARCH_QUERIES)];
+
+// ─── NICHE DETECTION ──────────────────────────────────────────────────────────
+function getNiche(title = '', description = '', keywords = '') {
+  const text = (title + ' ' + description + ' ' + keywords).toLowerCase();
+  if (/asmr/.test(text)) return 'asmr';
+  if (/mental health|anxiety|depression|therapy|mindful|wellness|healing|burnout|panic|ocd/.test(text)) return 'mental health';
+  if (/tarot|astrology|spiritual|manifestation|zodiac|crystal|witch|law of attraction|shadow work|angel number/.test(text)) return 'spiritual';
+  if (/kawaii|plush|plushie|squishmallow|stuffed animal|sanrio|jellycat|build a bear/.test(text)) return 'kawaii/plush';
+  if (/adhd|autism|neurodivergent|autistic/.test(text)) return 'neurodivergent';
+  if (/chronic|spoonie|fibromyalgia|endometriosis|autoimmune|invisible illness/.test(text)) return 'chronic illness';
+  if (/cottagecore|cottage|fairy|goblin|dark academia|light academia/.test(text)) return 'aesthetic niche';
+  if (/cozy|hygge|slow living|soft life/.test(text)) return 'cozy lifestyle';
+  if (/introvert|living alone|solo living|solitude/.test(text)) return 'introvert lifestyle';
+  if (/grief|heartbreak|breakup|toxic relationship|codependency/.test(text)) return 'emotional healing';
+  if (/makeup|beauty|skincare|skin care|nail|grwm|get ready|gua sha/.test(text)) return 'beauty';
+  if (/hair care|curly hair|natural hair/.test(text)) return 'hair care';
+  if (/fashion|outfit|ootd|style|haul|thrift|capsule wardrobe/.test(text)) return 'fashion';
+  if (/book|reading|booktok|booktube/.test(text)) return 'books';
+  if (/journal|bullet journal|gratitude|stationery/.test(text)) return 'journaling';
+  if (/crochet|knit|embroid|craft|sewing|pottery|paint|art vlog|watercolor/.test(text)) return 'crafts & art';
+  if (/yoga|pilates|stretch|gentle fitness|movement/.test(text)) return 'gentle fitness';
+  if (/cook|bake|recipe|food|meal prep|matcha|coffee|cafe/.test(text)) return 'food & cooking';
+  if (/self.?care|self love|glow up|that girl/.test(text)) return 'self care';
+  if (/productiv|morning routine|night routine|vision board|goal setting/.test(text)) return 'productivity';
+  if (/college|student|university|dorm|adulting/.test(text)) return 'student life';
+  if (/anime|ghibli|manga/.test(text)) return 'anime';
+  if (/pet|cat vlog|dog vlog|kitten/.test(text)) return 'pets';
   return 'lifestyle';
 }
 
-// ─── MAIN BATCH ───────────────────────────────────────────────────────────────
-async function runBatch(keys) {
-  exhaustedKeys = new Set();
-  const seen = await getSeenChannels();
-  const results = [];
-  const target = 500;
-  const shuffled = [...SEARCH_QUERIES].sort(() => Math.random() - 0.5);
-
-  for (const query of shuffled) {
-    if (results.length >= target) break;
-    if (getNextKey(keys) === null) { log('All API keys exhausted'); break; }
-
-    try {
-      log(`Searching: "${query}" (${results.length}/${target} found)`);
-      const videos = await searchVideos(query, keys);
-
-      for (const video of videos) {
-        if (results.length >= target) break;
-        if (getNextKey(keys) === null) break;
-
-        const channelId = video.snippet?.channelId;
-        if (!channelId || seen[channelId]) continue;
-        seen[channelId] = true;
-
-        const channel = await fetchChannelDetails(channelId, keys);
-        if (!channel) continue;
-
-        const subs = parseInt(channel.statistics?.subscriberCount || 0);
-        if (subs < 1000 || subs > 500000) { await addSeenChannel(channelId); continue; }
-
-        const channelVideos = await getChannelVideos(channelId, keys);
-        if (channelVideos.length < 3) { await addSeenChannel(channelId); continue; }
-
-        const videoIds = channelVideos.map(v => v.id?.videoId).filter(Boolean);
-        if (videoIds.length === 0) { await addSeenChannel(channelId); continue; }
-
-        const stats = await fetchVideoStats(videoIds, keys);
-        if (stats.length === 0) { await addSeenChannel(channelId); continue; }
-
-        const avgViews = stats.reduce((s, v) => s + parseInt(v.statistics?.viewCount || 0), 0) / stats.length;
-        const avgLikes = stats.reduce((s, v) => s + parseInt(v.statistics?.likeCount || 0), 0) / stats.length;
-        const avgComments = stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount || 0), 0) / stats.length;
-
-        if (avgViews < 1000) { await addSeenChannel(channelId); continue; }
-
-        const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
-        const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
-
-        if (likeRatio < 0.05) { await addSeenChannel(channelId); continue; }
-        if (commentRatio < 0.005) { await addSeenChannel(channelId); continue; }
-
-        const desc = channel.snippet?.description || '';
-        const handle = channel.snippet?.customUrl || ('@' + (channel.snippet?.title || '').replace(/\s+/g,'').toLowerCase());
-        const email = extractEmail(desc) || extractEmail(channel.brandingSettings?.channel?.description);
-        const niche = getNiche(channel.snippet?.title, desc);
-        const firstName = (channel.snippet?.title || 'Unknown').split(' ')[0];
-
-        results.push({
-          first_name: firstName,
-          handle,
-          email: email || 'Not listed',
-          avg_views: Math.round(avgViews),
-          avg_likes: Math.round(avgLikes),
-          avg_comments: Math.round(avgComments),
-          like_ratio: parseFloat(likeRatio.toFixed(4)),
-          comment_ratio: parseFloat(commentRatio.toFixed(4)),
-          subscriber_count: subs,
-          niche,
-          channel_url: `https://youtube.com/${handle}`,
-          date_found: new Date().toISOString().split('T')[0],
-        });
-
-        await addSeenChannel(channelId);
-        log(`✓ Found: ${firstName} (${handle}) | ${Math.round(avgViews)} avg views | ${niche}`);
-      }
-    } catch(e) {
-      log(`Query "${query}" error: ${e.message}`);
-    }
-  }
-
-  log(`Batch complete: ${results.length} creators found`);
-  return results;
+// ─── EMAIL EXTRACTION ─────────────────────────────────────────────────────────
+function extractEmail(text = '') {
+  if (!text) return null;
+  const matches = text.match(/\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/g) || [];
+  const valid = matches.filter(e =>
+    !e.includes('example.com') && !e.includes('youtu') &&
+    !e.includes('google') && !e.includes('sentry') &&
+    !e.includes('email@') && e.length < 80
+  );
+  return valid[0] || null;
 }
 
-async function executeBatch(apiKeyOrKeys) {
-  const keys = Array.isArray(apiKeyOrKeys) ? apiKeyOrKeys : getApiKeys();
-  if (keys.length === 0) return { success: false, message: 'No API keys configured' };
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  const state = await getState();
-  if (state.isRunning) return { success: false, message: 'Already running' };
+function chunk(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
 
-  state.isRunning = true;
-  await saveState(state);
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
+function fmtNum(n) {
+  const x = Number(n);
+  if (isNaN(x) || x === 0) return '0';
+  if (x >= 1e6) return (x / 1e6).toFixed(1) + 'M';
+  if (x >= 1e3) return (x / 1e3).toFixed(1) + 'K';
+  return Math.round(x).toString();
+}
+
+// ─── MAIN BATCH ───────────────────────────────────────────────────────────────
+const TARGET = 500;
+
+async function runBatch(km) {
+  const batchNum = (liveState.batchNumber || 0) + 1;
+  log(`=== Batch #${batchNum} START | ${km.keys.length} key(s) ===`);
+  await persistState({ isRunning: true, batchNumber: batchNum });
+
+  const seen = await getSeenChannels();
+  const discoveredIds = []; // ordered list of new channel IDs
+
+  // ── PHASE 1: SEARCH — collect channel IDs ─────────────────────────────────
+  const queries = shuffle(QUERIES);
+  log(`Phase 1: ${queries.length} queries`);
+  liveState.progress = { phase: 'Searching', done: 0, total: queries.length, currentName: '', foundSoFar: 0 };
+
+  for (let qi = 0; qi < queries.length; qi++) {
+    if (!km.hasKeys()) { log('All keys exhausted in search phase'); break; }
+
+    liveState.progress.done = qi;
+    liveState.progress.currentName = queries[qi];
+
+    try {
+      const data = await ytGet('search', {
+        part: 'snippet',
+        q: queries[qi],
+        type: 'video',
+        maxResults: 20,
+        relevanceLanguage: 'en',
+        order: 'relevance',
+      }, km);
+
+      for (const item of data?.items || []) {
+        const id = item.snippet?.channelId;
+        if (id && !seen.has(id) && !discoveredIds.includes(id)) {
+          discoveredIds.push(id);
+        }
+      }
+    } catch (e) {
+      if (e.message === 'ALL_KEYS_EXHAUSTED') break;
+      log(`Search error "${queries[qi]}": ${e.message}`);
+    }
+
+    await sleep(250);
+  }
+
+  log(`Phase 1 done: ${discoveredIds.length} new channel IDs`);
+
+  // ── PHASE 2: CHANNEL DETAILS — batches of 50 ─────────────────────────────
+  log(`Phase 2: Fetching channel details`);
+  const channelBatches = chunk(discoveredIds, 50);
+  const candidates = [];
+  liveState.progress = { phase: 'Fetching channels', done: 0, total: channelBatches.length, currentName: '', foundSoFar: 0 };
+
+  for (let bi = 0; bi < channelBatches.length; bi++) {
+    if (!km.hasKeys()) break;
+    liveState.progress.done = bi;
+
+    try {
+      const data = await ytGet('channels', {
+        part: 'snippet,statistics,contentDetails,brandingSettings',
+        id: channelBatches[bi].join(','),
+        maxResults: 50,
+      }, km);
+
+      for (const ch of data?.items || []) {
+        const subs = parseInt(ch.statistics?.subscriberCount || 0);
+        const videoCount = parseInt(ch.statistics?.videoCount || 0);
+        if (subs < 1000 || subs > 500000) continue;
+        if (videoCount < 5) continue;
+
+        const desc = ch.snippet?.description || '';
+        const brandDesc = ch.brandingSettings?.channel?.description || '';
+        const keywords = ch.brandingSettings?.channel?.keywords || '';
+        const uploadsPlaylistId = ch.contentDetails?.relatedPlaylists?.uploads || '';
+        if (!uploadsPlaylistId) continue;
+
+        candidates.push({
+          id: ch.id,
+          title: ch.snippet?.title || '',
+          customUrl: ch.snippet?.customUrl || '',
+          publishedAt: ch.snippet?.publishedAt || '',
+          thumbnail: ch.snippet?.thumbnails?.medium?.url || ch.snippet?.thumbnails?.default?.url || '',
+          country: ch.snippet?.country || '',
+          subscriberCount: subs,
+          videoCount,
+          totalViews: parseInt(ch.statistics?.viewCount || 0),
+          uploadsPlaylistId,
+          email: extractEmail(desc) || extractEmail(brandDesc),
+          keywords,
+          description: desc,
+        });
+      }
+    } catch (e) {
+      if (e.message === 'ALL_KEYS_EXHAUSTED') break;
+      log(`Channel batch error: ${e.message}`);
+    }
+
+    await sleep(200);
+  }
+
+  log(`Phase 2 done: ${candidates.length} candidates pass subscriber filter`);
+
+  // ── PHASE 3: VIDEO METRICS — playlistItems (1 unit) + videos batch ────────
+  log(`Phase 3: Analyzing video metrics`);
+  const creators = [];
+  liveState.progress = { phase: 'Analyzing videos', done: 0, total: candidates.length, currentName: '', foundSoFar: 0 };
+
+  for (let ci = 0; ci < candidates.length; ci++) {
+    if (!km.hasKeys()) { log('All keys exhausted in video phase'); break; }
+    if (creators.length >= TARGET) { log(`Hit target of ${TARGET}`); break; }
+
+    const ch = candidates[ci];
+    liveState.progress.done = ci;
+    liveState.progress.currentName = ch.title;
+    liveState.progress.foundSoFar = creators.length;
+
+    try {
+      // Get video IDs from uploads playlist — costs 1 unit (vs 100 for search)
+      const plData = await ytGet('playlistItems', {
+        part: 'contentDetails',
+        playlistId: ch.uploadsPlaylistId,
+        maxResults: 10,
+      }, km);
+
+      const videoIds = (plData?.items || []).map(i => i.contentDetails?.videoId).filter(Boolean);
+      if (videoIds.length < 3) {
+        await markSeenBatch([ch.id]);
+        await sleep(100);
+        continue;
+      }
+
+      await sleep(150);
+
+      // Batch fetch video stats — all IDs in one call (1 unit for up to 50)
+      const vidData = await ytGet('videos', {
+        part: 'statistics',
+        id: videoIds.join(','),
+      }, km);
+
+      const stats = vidData?.items || [];
+      if (stats.length === 0) { await markSeenBatch([ch.id]); continue; }
+
+      const avgViews = stats.reduce((s, v) => s + parseInt(v.statistics?.viewCount || 0), 0) / stats.length;
+      const avgLikes = stats.reduce((s, v) => s + parseInt(v.statistics?.likeCount || 0), 0) / stats.length;
+      const avgComments = stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount || 0), 0) / stats.length;
+
+      // Quality thresholds
+      if (avgViews < 1000) { await markSeenBatch([ch.id]); await sleep(100); continue; }
+
+      const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
+      const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
+
+      if (likeRatio < 0.02) { await markSeenBatch([ch.id]); await sleep(100); continue; }
+      if (commentRatio < 0.001) { await markSeenBatch([ch.id]); await sleep(100); continue; }
+
+      // Channel age & upload frequency
+      const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
+      const ageMonths = Math.max(ageMs / (1000 * 60 * 60 * 24 * 30.5), 1);
+      const uploadFrequency = parseFloat((ch.videoCount / ageMonths).toFixed(2));
+
+      const handle = ch.customUrl || `channel/${ch.id}`;
+      const channelUrl = ch.customUrl
+        ? `https://youtube.com/${ch.customUrl}`
+        : `https://youtube.com/channel/${ch.id}`;
+
+      const creator = {
+        first_name: ch.title.split(' ')[0] || ch.title,
+        handle,
+        email: ch.email || null,
+        avg_views: Math.round(avgViews),
+        avg_likes: Math.round(avgLikes),
+        avg_comments: Math.round(avgComments),
+        like_ratio: parseFloat(likeRatio.toFixed(4)),
+        comment_ratio: parseFloat(commentRatio.toFixed(4)),
+        subscriber_count: ch.subscriberCount,
+        niche: getNiche(ch.title, ch.description, ch.keywords),
+        channel_url: channelUrl,
+        date_found: new Date().toISOString().split('T')[0],
+        batch_number: batchNum,
+        video_count: ch.videoCount,
+        total_views: ch.totalViews,
+        country: ch.country || null,
+        upload_frequency: uploadFrequency,
+        thumbnail_url: ch.thumbnail || null,
+      };
+
+      await saveCreator(creator);
+      await markSeenBatch([ch.id]);
+      creators.push(creator);
+
+      log(`✓ [${creators.length}/${TARGET}] ${ch.title} | ${fmtNum(avgViews)} avg views | ${creator.niche}${creator.email ? ' | 📧' : ''}`);
+
+      if (creators.length % 50 === 0) {
+        await persistState({ totalFound: (liveState.totalFound || 0) });
+      }
+    } catch (e) {
+      if (e.message === 'ALL_KEYS_EXHAUSTED') break;
+      log(`Video error ${ch.title}: ${e.message}`);
+    }
+
+    await sleep(150);
+  }
+
+  // ── DONE ──────────────────────────────────────────────────────────────────
+  const newTotal = (liveState.totalFound || 0) + creators.length;
+  await persistState({
+    isRunning: false,
+    totalFound: newTotal,
+    lastRunAt: new Date().toISOString(),
+  });
+  liveState.progress = { phase: 'Complete', done: creators.length, total: TARGET, currentName: '', foundSoFar: creators.length };
+
+  const emailCount = creators.filter(c => c.email).length;
+  log(`=== Batch #${batchNum} DONE: ${creators.length} creators found, ${emailCount} with emails. Total: ${newTotal} ===`);
+  log(`Key status: ${JSON.stringify(km.summary())}`);
+
+  return creators;
+}
+
+// ─── EXCEL EXPORT ─────────────────────────────────────────────────────────────
+const EXCEL_COLS = [
+  { key: 'first_name', header: 'Name', width: 18 },
+  { key: 'handle', header: 'Handle', width: 25 },
+  { key: 'email', header: 'Email', width: 32 },
+  { key: 'niche', header: 'Niche', width: 20 },
+  { key: 'subscriber_count', header: 'Subscribers', width: 14 },
+  { key: 'avg_views', header: 'Avg Views', width: 12 },
+  { key: 'avg_likes', header: 'Avg Likes', width: 12 },
+  { key: 'avg_comments', header: 'Avg Comments', width: 14 },
+  { key: 'like_ratio', header: 'Like Ratio', width: 12 },
+  { key: 'comment_ratio', header: 'Comment Ratio', width: 14 },
+  { key: 'country', header: 'Country', width: 10 },
+  { key: 'upload_frequency', header: 'Uploads/Mo', width: 12 },
+  { key: 'total_views', header: 'Total Views', width: 14 },
+  { key: 'video_count', header: 'Videos', width: 10 },
+  { key: 'channel_url', header: 'Channel URL', width: 45 },
+  { key: 'thumbnail_url', header: 'Thumbnail URL', width: 45 },
+  { key: 'date_found', header: 'Date Found', width: 12 },
+  { key: 'batch_number', header: 'Batch', width: 8 },
+];
+
+function generateExcel(rows) {
+  const wb = XLSX.utils.book_new();
+  const headers = EXCEL_COLS.map(c => c.header);
+  const data = rows.map(r => EXCEL_COLS.map(c => {
+    const v = r[c.key];
+    if (c.key === 'like_ratio' || c.key === 'comment_ratio') return v != null ? parseFloat((v * 100).toFixed(2)) : '';
+    return v != null ? v : '';
+  }));
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = EXCEL_COLS.map(c => ({ wch: c.width }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Creators');
+  return wb;
+}
+
+// ─── SCHEDULER ────────────────────────────────────────────────────────────────
+let batchRunning = false;
+const RESULTS_PATH = path.join(__dirname, 'data', 'results.xlsx');
+
+async function executeBatch(keys) {
+  if (batchRunning) { log('Batch already running'); return { success: false, message: 'Already running' }; }
+  if (!keys || keys.length === 0) return { success: false, message: 'No API keys' };
+
+  batchRunning = true;
   try {
-    const rows = await runBatch(keys);
-    const batchNum = (state.batchNumber || 0) + 1;
-    rows.forEach(r => r.batch_number = batchNum);
-    if (rows.length > 0) await saveCreators(rows);
+    const km = new KeyManager(keys);
+    const creators = await runBatch(km);
 
-    const newState = {
-      batchNumber: batchNum,
-      totalFound: (state.totalFound || 0) + rows.length,
-      lastRunAt: new Date().toISOString(),
-      isRunning: false
-    };
-    await saveState(newState);
-
+    // Save Excel snapshot
     try {
       const all = await getLastResults();
       const wb = generateExcel(all);
       const dir = path.join(__dirname, 'data');
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       XLSX.writeFile(wb, RESULTS_PATH);
-    } catch(e) {}
+    } catch (e) { log('Excel snapshot error: ' + e.message); }
 
-    log(`Batch ${batchNum} complete: ${rows.length} new channels`);
-    return { success: true, found: rows.length, batchNumber: batchNum };
-  } catch(err) {
-    const s = await getState();
-    await saveState({ ...s, isRunning: false });
-    log(`Batch failed: ${err.message}`);
-    return { success: false, message: err.message };
+    return { success: true, found: creators.length };
+  } catch (e) {
+    log('executeBatch error: ' + e.message);
+    await persistState({ isRunning: false });
+    liveState.progress = { phase: 'Error', done: 0, total: 0, currentName: e.message, foundSoFar: 0 };
+    return { success: false, message: e.message };
+  } finally {
+    batchRunning = false;
   }
 }
 
 function startScheduler() {
-  initDb().then(() => {
-    log(`Scheduler ready. ${getApiKeys().length} API key(s) loaded. Runs daily at 2:00 AM UTC`);
-    setInterval(async () => {
-      const now = new Date();
-      if (now.getUTCHours() === 2 && now.getUTCMinutes() === 0) {
-        const keys = getApiKeys();
-        if (keys.length > 0) {
-          log('Starting scheduled batch...');
-          await executeBatch(keys);
-        }
-      }
-    }, 60000);
+  initDb().then(async () => {
+    await loadState();
+    await persistState({ isRunning: false });
+
+    const keys = getApiKeys();
+    log(`Scheduler ready. ${keys.length} API key(s) loaded.`);
+    if (keys.length === 0) { log('WARNING: No YouTube API keys found!'); return; }
+
+    // Run 3x/day: 02:00, 10:00, 18:00 UTC
+    // With 5 keys (50K daily quota) this comfortably covers 2–3 full batches
+    cron.schedule('0 2 * * *', () => { executeBatch(getApiKeys()); }, { timezone: 'UTC' });
+    cron.schedule('0 10 * * *', () => { executeBatch(getApiKeys()); }, { timezone: 'UTC' });
+    cron.schedule('0 18 * * *', () => { executeBatch(getApiKeys()); }, { timezone: 'UTC' });
+
+    log('Scheduled: 02:00, 10:00, 18:00 UTC daily');
   }).catch(e => log('DB init error: ' + e.message));
 }
 
-module.exports = { startScheduler, executeBatch, getState, getLastResults, generateExcel, initDb, RESULTS_PATH, getApiKeys };
+module.exports = {
+  startScheduler, executeBatch, getState, getLastResults, generateExcel,
+  initDb, RESULTS_PATH, getApiKeys, getLogs,
+};

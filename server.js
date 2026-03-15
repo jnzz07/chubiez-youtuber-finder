@@ -1,54 +1,89 @@
+'use strict';
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
 
-let API_KEY = '';
-try {
-  const envContent = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
-  const match = envContent.match(/YOUTUBE_API_KEY=(.+)/);
-  if (match) API_KEY = match[1].trim();
-} catch(e) {}
-if (!API_KEY) API_KEY = process.env.YOUTUBE_API_KEY || '';
-
-const { startScheduler, executeBatch, getState, getLastResults, generateExcel, initDb, RESULTS_PATH, getApiKeys } = require('./scheduler');
+const {
+  startScheduler, executeBatch, getState, getLastResults,
+  generateExcel, initDb, getApiKeys, getLogs,
+} = require('./scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-['data','logs'].forEach(dir => {
+// Ensure runtime dirs exist
+['data', 'logs'].forEach(dir => {
   const p = path.join(__dirname, dir);
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 });
 
-app.get('/api/status', async (req, res) => {
-  const state = await getState();
+// ─── STATUS ───────────────────────────────────────────────────────────────────
+app.get('/api/status', (req, res) => {
+  const state = getState();
   const keys = getApiKeys();
   res.json({
-    batchNumber: state.batchNumber,
-    totalFound: state.totalFound,
-    lastRunAt: state.lastRunAt,
-    isRunning: state.isRunning,
+    ...state,
     hasApiKey: keys.length > 0,
     apiKeyCount: keys.length,
-    keyPreview: keys.length > 0 ? keys[0].slice(0,8) : 'none'
   });
 });
 
+// ─── LIVE PROGRESS ────────────────────────────────────────────────────────────
+app.get('/api/progress', (req, res) => {
+  const state = getState();
+  res.json(state.progress || { phase: 'Idle', done: 0, total: 0, currentName: '', foundSoFar: 0 });
+});
+
+// ─── LOGS ─────────────────────────────────────────────────────────────────────
+app.get('/api/logs', (req, res) => {
+  const limit = parseInt(req.query.limit) || 80;
+  const logs = getLogs();
+  res.json({ logs: logs.slice(-limit) });
+});
+
+// ─── TRIGGER ─────────────────────────────────────────────────────────────────
+app.post('/api/trigger', async (req, res) => {
+  const state = getState();
+  if (state.isRunning) return res.status(409).json({ error: 'Batch already running' });
+  const keys = getApiKeys();
+  if (keys.length === 0) return res.status(400).json({ error: 'No YouTube API keys configured' });
+  res.json({ success: true, message: `Batch started with ${keys.length} key(s)` });
+  executeBatch(keys).catch(e => console.error('Batch error:', e.message));
+});
+
+// ─── RESULTS ─────────────────────────────────────────────────────────────────
+app.get('/api/results', async (req, res) => {
+  try {
+    const results = await getLastResults(parseInt(req.query.limit) || 50);
+    res.json(results);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/results/all', async (req, res) => {
+  try {
+    const results = await getLastResults(10000);
+    res.json(results);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── DOWNLOADS ───────────────────────────────────────────────────────────────
 app.get('/api/download', async (req, res) => {
   try {
     const rows = await getLastResults();
-    if (rows.length === 0) return res.status(404).json({ error: 'No results yet.' });
+    if (rows.length === 0) return res.status(404).json({ error: 'No results yet' });
     const XLSX = require('xlsx');
     const wb = generateExcel(rows);
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="chubiez-youtubers.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="chubiez-creators-${Date.now()}.xlsx"`);
     res.send(buf);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/download/csv', async (req, res) => {
@@ -57,47 +92,58 @@ app.get('/api/download/csv', async (req, res) => {
     const all = await getLastResults();
     const data = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
     if (data.length === 0) return res.status(404).json({ error: 'No results found' });
-    const headers = ['first_name','handle','email','avg_views','avg_likes','avg_comments','like_ratio','comment_ratio','subscriber_count','niche','channel_url','date_found','batch_number'];
-    const csv = [headers.join(','), ...data.map(r => headers.map(h => `"${String(r[h]||'').replace(/"/g,'""')}"`).join(','))].join('\n');
+
+    const cols = [
+      'first_name', 'handle', 'email', 'niche', 'subscriber_count',
+      'avg_views', 'avg_likes', 'avg_comments', 'like_ratio', 'comment_ratio',
+      'country', 'upload_frequency', 'total_views', 'video_count',
+      'channel_url', 'thumbnail_url', 'date_found', 'batch_number',
+    ];
+    const headers = [
+      'Name', 'Handle', 'Email', 'Niche', 'Subscribers',
+      'Avg Views', 'Avg Likes', 'Avg Comments', 'Like Ratio', 'Comment Ratio',
+      'Country', 'Uploads/Mo', 'Total Views', 'Video Count',
+      'Channel URL', 'Thumbnail URL', 'Date Found', 'Batch',
+    ];
+
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(esc).join(','),
+      ...data.map(r => cols.map(c => {
+        const v = r[c];
+        if (c === 'like_ratio' || c === 'comment_ratio') return esc(v != null ? (v * 100).toFixed(2) + '%' : '');
+        return esc(v ?? '');
+      }).join(',')),
+    ].join('\n');
+
     const filename = batch ? `chubiez-batch-${batch}.csv` : 'chubiez-all-creators.csv';
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/trigger', async (req, res) => {
-  const keys = getApiKeys();
-  if (keys.length === 0) return res.status(400).json({ error: 'No YouTube API keys configured' });
-  const state = await getState();
-  if (state.isRunning) return res.status(409).json({ error: 'A batch is already running' });
-  res.json({ message: 'Batch started', apiKeys: keys.length });
-  executeBatch(keys).catch(err => console.log(`Manual batch error: ${err.message}`));
-});
-
-app.get('/api/results/all', async (req, res) => {
-  const results = await getLastResults(10000);
-  res.json(results);
-});
-
-app.get('/api/results', async (req, res) => {
-  const results = await getLastResults(parseInt(req.query.limit) || 50);
-  res.json(results);
-});
-
+// ─── SPA FALLBACK ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-initDb().then(() => {
-  app.listen(PORT, () => {
-    const keys = getApiKeys();
-    console.log(`\n Chubiez YouTuber Finder running at http://localhost:${PORT}`);
-    console.log(` ${keys.length} API key(s) loaded\n`);
-    if (keys.length === 0) console.log(' WARNING: No YouTube API keys found!');
-    startScheduler();
+// ─── START ────────────────────────────────────────────────────────────────────
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      const keys = getApiKeys();
+      console.log(`\n Chubiez YouTuber Finder running at http://localhost:${PORT}`);
+      console.log(` ${keys.length} API key(s) loaded`);
+      if (keys.length === 0) console.log(' WARNING: No YouTube API keys found!');
+      startScheduler();
+    });
+  })
+  .catch(e => {
+    console.error('DB init error:', e.message);
+    // Start anyway — server works without DB (in-memory mode)
+    app.listen(PORT, () => {
+      console.log(`\n Server running on port ${PORT} (no DB — in-memory mode)`);
+      startScheduler();
+    });
   });
-}).catch(e => {
-  console.error('Failed to init DB:', e.message, e.stack);
-  process.exit(1);
-});
