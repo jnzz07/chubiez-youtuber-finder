@@ -32,7 +32,7 @@ function getPool() {
     if (!url) return null;
     pool = new Pool({
       connectionString: url,
-      ssl: url.includes('localhost') ? false : { rejectUnauthorized: false },
+      ssl: false,
       max: 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
@@ -192,25 +192,17 @@ class KeyManager {
     this.keys = [...keys];
     this.idx = 0;
     this.exhausted = new Set();
-    // Auto-reset at midnight UTC (YouTube quota resets ~midnight Pacific ≈ 07:00-08:00 UTC)
-    // We reset at 08:00 UTC to be safe
-    cron.schedule('0 8 * * *', () => {
-      log('Auto-resetting API key quota tracking');
-      this.exhausted.clear();
-      this.idx = 0;
-    }, { timezone: 'UTC' });
   }
 
   get current() { return this.keys[this.idx]; }
 
-  // Round-robin: advance to next available key
   rotate() {
     const start = this.idx;
     let next = (this.idx + 1) % this.keys.length;
     while (this.exhausted.has(next) && next !== start) {
       next = (next + 1) % this.keys.length;
     }
-    if (this.exhausted.has(next)) return null; // All exhausted
+    if (this.exhausted.has(next)) return null;
     this.idx = next;
     return this.keys[this.idx];
   }
@@ -219,6 +211,12 @@ class KeyManager {
     log(`Key ${this.idx + 1}/${this.keys.length} exhausted, rotating...`);
     this.exhausted.add(this.idx);
     return this.rotate();
+  }
+
+  reset() {
+    log('Resetting API key quota tracking');
+    this.exhausted.clear();
+    this.idx = 0;
   }
 
   hasKeys() { return this.exhausted.size < this.keys.length; }
@@ -235,34 +233,51 @@ class KeyManager {
 // ─── YOUTUBE API ──────────────────────────────────────────────────────────────
 const YT = 'https://www.googleapis.com/youtube/v3';
 
-async function ytGet(endpoint, params, km, retries = 3) {
-  for (let attempt = 0; attempt < retries; attempt++) {
+async function ytGet(endpoint, params, km) {
+  // Separate key-rotation retries from network retries so we always try ALL keys
+  let networkRetries = 0;
+  const maxNetworkRetries = 2;
+
+  while (true) {
     if (!km.hasKeys()) throw new Error('ALL_KEYS_EXHAUSTED');
     try {
       const res = await axios.get(`${YT}/${endpoint}`, {
         params: { ...params, key: km.current },
         timeout: 20000,
       });
+      networkRetries = 0; // reset on success
       return res.data;
     } catch (e) {
       const status = e.response?.status;
       const reason = e.response?.data?.error?.errors?.[0]?.reason;
+
+      // Quota/auth — rotate to next key and retry immediately
       if (status === 403 || status === 429 ||
-          reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+          reason === 'quotaExceeded' || reason === 'dailyLimitExceeded' || reason === 'forbidden') {
         const next = km.markExhausted();
         if (!next) throw new Error('ALL_KEYS_EXHAUSTED');
         log(`Switched to key ${km.idx + 1}`);
-        continue; // retry with new key
-      }
-      if (status === 400 || status === 404) return null; // Bad request — skip
-      if (attempt < retries - 1) {
-        await sleep(800 * (attempt + 1));
         continue;
       }
+
+      // Bad request — skip
+      if (status === 400 || status === 404) return null;
+
+      // Network/transient error — retry same key
+      if (!e.response || e.code === 'ECONNRESET' || e.code === 'ETIMEDOUT' || e.code === 'ENOTFOUND') {
+        if (networkRetries < maxNetworkRetries) {
+          networkRetries++;
+          log(`Network error (${e.code || 'unknown'}), retry ${networkRetries}/${maxNetworkRetries}`);
+          await sleep(1000 * networkRetries);
+          continue;
+        }
+        return null;
+      }
+
+      log(`API error ${status} on ${endpoint}: ${e.response?.data?.error?.message || e.message}`);
       return null;
     }
   }
-  return null;
 }
 
 // ─── SEARCH QUERIES ───────────────────────────────────────────────────────────
@@ -756,6 +771,32 @@ async function executeBatch(keys) {
   }
 }
 
+// Global key manager instance — shared across scheduled runs
+let sharedKm = null;
+
+function getSharedKm() {
+  const keys = getApiKeys();
+  if (!sharedKm || sharedKm.keys.join() !== keys.join()) {
+    sharedKm = new KeyManager(keys);
+  }
+  return sharedKm;
+}
+
+async function testApiKey(key) {
+  try {
+    const res = await axios.get(`${YT}/search`, {
+      params: { part: 'snippet', q: 'test', type: 'video', maxResults: 1, key },
+      timeout: 10000,
+    });
+    return res.status === 200;
+  } catch (e) {
+    const status = e.response?.status;
+    const reason = e.response?.data?.error?.errors?.[0]?.reason;
+    if (reason === 'quotaExceeded') return 'quota'; // Valid key, just exhausted
+    return false;
+  }
+}
+
 function startScheduler() {
   initDb().then(async () => {
     await loadState();
@@ -765,11 +806,21 @@ function startScheduler() {
     log(`Scheduler ready. ${keys.length} API key(s) loaded.`);
     if (keys.length === 0) { log('WARNING: No YouTube API keys found!'); return; }
 
+    // Test keys on startup
+    for (let i = 0; i < keys.length; i++) {
+      const result = await testApiKey(keys[i]);
+      log(`Key ${i + 1}: ${result === true ? 'OK' : result === 'quota' ? 'quota exhausted' : 'INVALID or error'}`);
+    }
+
+    // Reset key manager quota tracking daily at 08:00 UTC
+    cron.schedule('0 8 * * *', () => {
+      if (sharedKm) sharedKm.reset();
+    });
+
     // Run 3x/day: 02:00, 10:00, 18:00 UTC
-    // With 5 keys (50K daily quota) this comfortably covers 2–3 full batches
-    cron.schedule('0 2 * * *', () => { executeBatch(getApiKeys()); }, { timezone: 'UTC' });
-    cron.schedule('0 10 * * *', () => { executeBatch(getApiKeys()); }, { timezone: 'UTC' });
-    cron.schedule('0 18 * * *', () => { executeBatch(getApiKeys()); }, { timezone: 'UTC' });
+    cron.schedule('0 2 * * *', () => { executeBatch(getApiKeys()); });
+    cron.schedule('0 10 * * *', () => { executeBatch(getApiKeys()); });
+    cron.schedule('0 18 * * *', () => { executeBatch(getApiKeys()); });
 
     log('Scheduled: 02:00, 10:00, 18:00 UTC daily');
   }).catch(e => log('DB init error: ' + e.message));
