@@ -142,16 +142,14 @@ app.get('/api/download/csv', async (req, res) => {
 // ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
 app.post('/api/instantly/push', async (req, res) => {
   const apiKey = process.env.INSTANTLY_API_KEY;
-  const campaignId = process.env.INSTANTLY_CAMPAIGN_ID;
-  if (!apiKey || !campaignId) {
-    return res.status(400).json({ error: 'INSTANTLY_API_KEY and INSTANTLY_CAMPAIGN_ID must be set in .env' });
-  }
+  if (!apiKey) return res.status(400).json({ error: 'INSTANTLY_API_KEY must be set in .env' });
   try {
     const { batch } = req.body;
     const all = await getLastResults(10000);
     const creators = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
     if (creators.length === 0) return res.status(404).json({ error: 'No creators found' });
-    const result = await pushToInstantly(creators, apiKey, campaignId);
+    const batchLabel = batch ? `Batch ${batch}` : 'All Creators';
+    const result = await pushToInstantly(creators, apiKey, batchLabel);
     res.json({ success: true, ...result });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

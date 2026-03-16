@@ -833,9 +833,24 @@ function startScheduler() {
 }
 
 // ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
-async function pushToInstantly(creators, apiKey, campaignId) {
+async function pushToInstantly(creators, apiKey, batchLabel) {
   const withEmail = creators.filter(c => c.email && c.email.trim());
-  if (withEmail.length === 0) return { sent: 0, skipped: creators.length, failed: 0 };
+  if (withEmail.length === 0) return { sent: 0, skipped: creators.length, failed: 0, campaignName: null };
+
+  // Create a new campaign for this push
+  const campaignName = `Chubiez - ${batchLabel} - ${new Date().toISOString().slice(0, 10)}`;
+  log(`Creating Instantly campaign: "${campaignName}"`);
+  const createRes = await fetch('https://api.instantly.ai/api/v1/campaign/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey, name: campaignName }),
+  });
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`Failed to create Instantly campaign: ${createRes.status} ${err}`);
+  }
+  const { id: campaignId } = await createRes.json();
+  log(`Campaign created: ${campaignId}`);
 
   const leads = withEmail.map(c => ({
     email: c.email.trim(),
@@ -876,7 +891,7 @@ async function pushToInstantly(creators, apiKey, campaignId) {
   }
 
   log(`Instantly push complete: ${sent} sent, ${creators.length - withEmail.length} skipped (no email), ${failed} failed`);
-  return { sent, skipped: creators.length - withEmail.length, failed };
+  return { sent, skipped: creators.length - withEmail.length, failed, campaignName };
 }
 
 module.exports = {

@@ -648,7 +648,7 @@ async function pushToInstantly() {
     if (!r.ok) {
       showToast('Instantly error: ' + (d.error || 'Unknown'), 5000);
     } else {
-      showToast(`✓ Sent ${d.sent} leads to Instantly. Skipped: ${d.skipped} (no email). Failed: ${d.failed}`);
+      showToast(`✓ ${d.sent} leads → "${d.campaignName}". Skipped: ${d.skipped} (no email). Failed: ${d.failed}`);
     }
   } catch (e) {
     showToast('Error: ' + e.message, 4000);
