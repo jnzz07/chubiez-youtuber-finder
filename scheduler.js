@@ -496,9 +496,10 @@ async function runBatch(km) {
   const discoveredIds = []; // ordered list of new channel IDs
 
   // ── PHASE 1: SEARCH — collect channel IDs ─────────────────────────────────
-  // Cap at 80 queries per batch (100 units each = 8,000 units total for search).
+  // Cap at 150 queries per batch (100 units each = 15,000 units total for search).
+  // Sized for 5 API keys running 3 batches/day (~16,500 units/batch, 49,500/day).
   // Queries are shuffled so every batch explores a different subset.
-  const queries = shuffle(QUERIES).slice(0, 80);
+  const queries = shuffle(QUERIES).slice(0, 150);
   log(`Phase 1: ${queries.length} queries (${QUERIES.length} total available)`);
   liveState.progress = { phase: 'Searching', done: 0, total: queries.length, currentName: '', foundSoFar: 0 };
 
