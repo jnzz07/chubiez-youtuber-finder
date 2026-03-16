@@ -75,6 +75,7 @@ async function initDb() {
     ['country', 'TEXT'],
     ['upload_frequency', 'NUMERIC'],
     ['thumbnail_url', 'TEXT'],
+    ['instantly_sent_at', 'TIMESTAMPTZ'],
   ];
   for (const [col, type] of newCols) {
     await p.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS ${col} ${type}`).catch(() => {});
@@ -86,6 +87,7 @@ async function initDb() {
 
 const memoryResults = [];
 const memorySeenChannels = new Set();
+const memoryInstantlySent = new Set();
 
 async function saveCreator(row) {
   const p = getPool();
@@ -833,9 +835,24 @@ function startScheduler() {
 }
 
 // ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
+async function markInstantlySent(emails) {
+  if (!emails.length) return;
+  const p = getPool();
+  if (!p) { emails.forEach(e => memoryInstantlySent.add(e)); return; }
+  try {
+    await p.query(`UPDATE creators SET instantly_sent_at = NOW() WHERE email = ANY($1)`, [emails]);
+  } catch (e) { log(`markInstantlySent error: ${e.message}`); }
+}
+
 async function pushToInstantly(creators, apiKey, batchLabel) {
-  const withEmail = creators.filter(c => c.email && c.email.trim());
-  if (withEmail.length === 0) return { sent: 0, skipped: creators.length, failed: 0, campaignName: null };
+  // Split already-sent from fresh
+  const alreadySent = creators.filter(c => c.instantly_sent_at || memoryInstantlySent.has(c.email));
+  const fresh = creators.filter(c => !c.instantly_sent_at && !memoryInstantlySent.has(c.email));
+  const withEmail = fresh.filter(c => c.email && c.email.trim());
+
+  if (withEmail.length === 0) {
+    return { sent: 0, skipped: fresh.length, alreadySent: alreadySent.length, failed: 0, campaignName: null };
+  }
 
   // Create a new campaign for this push
   const campaignName = `Chubiez - ${batchLabel} - ${new Date().toISOString().slice(0, 10)}`;
@@ -869,6 +886,7 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
   const chunks = [];
   for (let i = 0; i < leads.length; i += 100) chunks.push(leads.slice(i, i + 100));
 
+  const sentEmails = [];
   let sent = 0, failed = 0;
   for (const chunk of chunks) {
     try {
@@ -882,16 +900,20 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
           leads: chunk,
         }),
       });
-      if (res.ok) sent += chunk.length;
-      else { failed += chunk.length; log(`Instantly chunk failed: ${res.status} ${res.statusText}`); }
+      if (res.ok) {
+        sent += chunk.length;
+        chunk.forEach(l => sentEmails.push(l.email));
+      } else { failed += chunk.length; log(`Instantly chunk failed: ${res.status} ${res.statusText}`); }
     } catch (e) {
       failed += chunk.length;
       log(`Instantly fetch error: ${e.message}`);
     }
   }
 
-  log(`Instantly push complete: ${sent} sent, ${creators.length - withEmail.length} skipped (no email), ${failed} failed`);
-  return { sent, skipped: creators.length - withEmail.length, failed, campaignName };
+  await markInstantlySent(sentEmails);
+
+  log(`Instantly push complete: ${sent} sent, ${alreadySent.length} already sent, ${fresh.length - withEmail.length} skipped (no email), ${failed} failed`);
+  return { sent, skipped: fresh.length - withEmail.length, alreadySent: alreadySent.length, failed, campaignName };
 }
 
 module.exports = {

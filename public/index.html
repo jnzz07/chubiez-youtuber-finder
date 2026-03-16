@@ -108,6 +108,9 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
 .niche-tag{background:#1e1e1e;color:#f87171;font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #3d1515}
 .batch-tag{background:#1a1a2e;color:#818cf8;font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid #2a2a4a}
 .country-tag{font-size:10px;color:#666;background:#1a1a1a;padding:2px 7px;border-radius:99px;border:1px solid #222}
+.sent-tag{background:#052e16;color:#4ade80;font-size:10px;padding:2px 9px;border-radius:99px;border:1px solid #166534;font-weight:700;letter-spacing:.04em}
+.card.sent{border-color:#166534;opacity:.8}
+.card.sent .avatar{border-color:#166534}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
 @media(max-width:900px){.metrics{grid-template-columns:repeat(3,1fr)}}
 .metric{background:#1a1a1a;border-radius:7px;padding:8px 10px;border:1px solid #222}
@@ -457,7 +460,8 @@ function renderCards() {
       ? `<img src="${thumb}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='${initials(name)}'">`
       : initials(name);
 
-    return `<div class="card">
+    const isSent = !!r.instantly_sent_at;
+    return `<div class="card${isSent ? ' sent' : ''}">
       <div class="avatar">${avatarContent}</div>
       <div class="info">
         <div class="name-row">
@@ -466,6 +470,7 @@ function renderCards() {
           ${niche ? `<span class="niche-tag">${escHtml(niche)}</span>` : ''}
           ${activeBatch === 'all' && bnum ? `<span class="batch-tag">Batch ${bnum}</span>` : ''}
           ${country ? `<span class="country-tag">${escHtml(country)}</span>` : ''}
+          ${isSent ? `<span class="sent-tag">✓ SENT</span>` : ''}
         </div>
         <div class="metrics">
           <div class="metric${hlView}"><div class="ml">Avg views</div><div class="mv">${fmt(r.avg_views)}</div></div>
@@ -648,7 +653,7 @@ async function pushToInstantly() {
     if (!r.ok) {
       showToast('Instantly error: ' + (d.error || 'Unknown'), 5000);
     } else {
-      showToast(`✓ ${d.sent} leads → "${d.campaignName}". Skipped: ${d.skipped} (no email). Failed: ${d.failed}`);
+      showToast(`✓ ${d.sent} leads → "${d.campaignName}". Already sent: ${d.alreadySent}. Skipped: ${d.skipped} (no email). Failed: ${d.failed}`);
     }
   } catch (e) {
     showToast('Error: ' + e.message, 4000);
