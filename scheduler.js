@@ -832,7 +832,54 @@ function startScheduler() {
   }).catch(e => log('DB init error: ' + e.message));
 }
 
+// ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
+async function pushToInstantly(creators, apiKey, campaignId) {
+  const withEmail = creators.filter(c => c.email && c.email.trim());
+  if (withEmail.length === 0) return { sent: 0, skipped: creators.length, failed: 0 };
+
+  const leads = withEmail.map(c => ({
+    email: c.email.trim(),
+    firstName: c.first_name || '',
+    personalization: c.niche ? `Love your ${c.niche} content` : '',
+    custom_variables: {
+      channel_url: c.channel_url || '',
+      niche: c.niche || '',
+      subscribers: String(c.subscriber_count || ''),
+      avg_views: String(Math.round(c.avg_views || 0)),
+      handle: c.handle || '',
+    },
+  }));
+
+  // Instantly allows max 100 leads per request — chunk it
+  const chunks = [];
+  for (let i = 0; i < leads.length; i += 100) chunks.push(leads.slice(i, i + 100));
+
+  let sent = 0, failed = 0;
+  for (const chunk of chunks) {
+    try {
+      const res = await fetch('https://api.instantly.ai/api/v1/lead/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: apiKey,
+          campaign_id: campaignId,
+          skip_if_in_workspace: true,
+          leads: chunk,
+        }),
+      });
+      if (res.ok) sent += chunk.length;
+      else { failed += chunk.length; log(`Instantly chunk failed: ${res.status} ${res.statusText}`); }
+    } catch (e) {
+      failed += chunk.length;
+      log(`Instantly fetch error: ${e.message}`);
+    }
+  }
+
+  log(`Instantly push complete: ${sent} sent, ${creators.length - withEmail.length} skipped (no email), ${failed} failed`);
+  return { sent, skipped: creators.length - withEmail.length, failed };
+}
+
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
-  initDb, RESULTS_PATH, getApiKeys, getLogs,
+  initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
 };

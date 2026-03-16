@@ -7,7 +7,7 @@ const cors = require('cors');
 
 const {
   startScheduler, executeBatch, getState, getLastResults,
-  generateExcel, initDb, getApiKeys, getLogs,
+  generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
 } = require('./scheduler');
 
 const app = express();
@@ -136,6 +136,23 @@ app.get('/api/download/csv', async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
+app.post('/api/instantly/push', async (req, res) => {
+  const apiKey = process.env.INSTANTLY_API_KEY;
+  const campaignId = process.env.INSTANTLY_CAMPAIGN_ID;
+  if (!apiKey || !campaignId) {
+    return res.status(400).json({ error: 'INSTANTLY_API_KEY and INSTANTLY_CAMPAIGN_ID must be set in .env' });
+  }
+  try {
+    const { batch } = req.body;
+    const all = await getLastResults(10000);
+    const creators = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
+    if (creators.length === 0) return res.status(404).json({ error: 'No creators found' });
+    const result = await pushToInstantly(creators, apiKey, campaignId);
+    res.json({ success: true, ...result });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

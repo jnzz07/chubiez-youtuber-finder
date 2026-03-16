@@ -231,6 +231,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
       </div>
       <a id="dl-csv" href="/api/download/csv" class="btn btn-green">↓ CSV</a>
       <a href="/api/download" class="btn">↓ Excel</a>
+      <button class="btn btn-green" id="instantly-btn" onclick="pushToInstantly()">⚡ Send to Instantly</button>
       <button class="btn btn-red" id="run-btn" onclick="triggerRun()">▶ Run now</button>
     </div>
   </div>
@@ -629,6 +630,31 @@ async function triggerRun() {
     showToast('Error: ' + e.message, 4000);
     btn.disabled = false;
     btn.innerHTML = '▶ Run now';
+  }
+}
+
+async function pushToInstantly() {
+  const btn = document.getElementById('instantly-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Sending…';
+  try {
+    const body = activeBatch && activeBatch !== 'all' ? { batch: activeBatch } : {};
+    const r = await fetch('/api/instantly/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      showToast('Instantly error: ' + (d.error || 'Unknown'), 5000);
+    } else {
+      showToast(`✓ Sent ${d.sent} leads to Instantly. Skipped: ${d.skipped} (no email). Failed: ${d.failed}`);
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message, 4000);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Send to Instantly';
   }
 }
 
