@@ -647,8 +647,7 @@ async function runBatch(km) {
       const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
 
-      if (likeRatio < 1 / 11) { await markSeenBatch([ch.id]); await sleep(100); continue; }   // ≥ 1:11 like ratio
-      if (commentRatio < 0.01) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:100 comment ratio
+      if (likeRatio < 1 / 11 && commentRatio < 0.01) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:11 likes OR ≥ 1:100 comments
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
