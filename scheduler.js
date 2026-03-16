@@ -611,11 +611,19 @@ async function runBatch(km) {
         maxResults: 10,
       }, km);
 
-      const videoIds = (plData?.items || []).map(i => i.contentDetails?.videoId).filter(Boolean);
+      const plItems = plData?.items || [];
+      const videoIds = plItems.map(i => i.contentDetails?.videoId).filter(Boolean);
       if (videoIds.length < 3) {
         await markSeenBatch([ch.id]);
         await sleep(100);
         continue;
+      }
+
+      // Recency check — most recent video must be within 90 days
+      const mostRecentDate = plItems[0]?.contentDetails?.videoPublishedAt;
+      if (mostRecentDate) {
+        const daysSince = (Date.now() - new Date(mostRecentDate).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince > 90) { await markSeenBatch([ch.id]); await sleep(100); continue; }
       }
 
       await sleep(150);
@@ -639,8 +647,8 @@ async function runBatch(km) {
       const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
 
-      if (likeRatio < 0.02) { await markSeenBatch([ch.id]); await sleep(100); continue; }
-      if (commentRatio < 0.001) { await markSeenBatch([ch.id]); await sleep(100); continue; }
+      if (likeRatio < 1 / 11) { await markSeenBatch([ch.id]); await sleep(100); continue; }   // ≥ 1:11 like ratio
+      if (commentRatio < 0.01) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:100 comment ratio
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
