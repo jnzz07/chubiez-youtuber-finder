@@ -127,6 +127,17 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
 .date-lbl{font-size:10px;color:#333;margin-left:auto}
 .upload-freq{font-size:10px;color:#555}
 
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:center;gap:12px;margin:8px 0 12px;padding-bottom:10px;border-bottom:1px solid #1e1e1e}
+.section-header:not(:first-child){margin-top:28px}
+.section-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.section-title.has-email{color:#4ade80}
+.section-title.no-email{color:#555}
+.section-count{font-size:11px;padding:2px 9px;border-radius:99px;font-weight:600}
+.section-count.has-email{background:#052e16;color:#4ade80;border:1px solid #166534}
+.section-count.no-email{background:#1a1a1a;color:#555;border:1px solid #222}
+.section-desc{font-size:11px;color:#3a3a3a}
+
 /* ── EMPTY ── */
 .empty{text-align:center;padding:80px 20px}
 .empty-icon{font-size:40px;margin-bottom:16px;opacity:.2}
@@ -438,7 +449,10 @@ function renderCards() {
     return;
   }
 
-  container.innerHTML = filtered.map(r => {
+  const withEmail = filtered.filter(r => r.email && r.email !== 'Not listed');
+  const noEmail = filtered.filter(r => !r.email || r.email === 'Not listed');
+
+  function buildCard(r) {
     const name = r.first_name || 'Unknown';
     const handle = r.handle || '';
     const email = r.email && r.email !== 'Not listed' ? r.email : '';
@@ -491,7 +505,29 @@ function renderCards() {
         </div>
       </div>
     </div>`;
-  }).join('');
+  }
+
+  let html = '';
+
+  if (withEmail.length > 0) {
+    html += `<div class="section-header">
+      <span class="section-title has-email">✉ Has Email</span>
+      <span class="section-count has-email">${withEmail.length}</span>
+      <span class="section-desc">Can be sent automatically via Instantly</span>
+    </div>`;
+    html += withEmail.map(buildCard).join('');
+  }
+
+  if (noEmail.length > 0) {
+    html += `<div class="section-header">
+      <span class="section-title no-email">No Email</span>
+      <span class="section-count no-email">${noEmail.length}</span>
+      <span class="section-desc">Manual outreach only</span>
+    </div>`;
+    html += noEmail.map(buildCard).join('');
+  }
+
+  container.innerHTML = html;
 }
 
 function escHtml(s) {
