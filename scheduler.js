@@ -88,6 +88,7 @@ async function initDb() {
 const memoryResults = [];
 const memorySeenChannels = new Set();
 const memoryInstantlySent = new Set();
+const memoryManualSentBatches = new Set();
 
 async function saveCreator(row) {
   const p = getPool();
@@ -153,9 +154,40 @@ async function loadState() {
   try {
     const res = await p.query('SELECT key, value FROM app_state');
     for (const row of res.rows) {
-      try { liveState[row.key] = JSON.parse(row.value); } catch (e) { liveState[row.key] = row.value; }
+      if (row.key === 'manually_sent_batches') {
+        try {
+          const arr = JSON.parse(row.value);
+          if (Array.isArray(arr)) arr.forEach(b => memoryManualSentBatches.add(Number(b)));
+        } catch (e) {}
+      } else {
+        try { liveState[row.key] = JSON.parse(row.value); } catch (e) { liveState[row.key] = row.value; }
+      }
     }
   } catch (e) {}
+}
+
+function getManualSentBatches() {
+  return [...memoryManualSentBatches];
+}
+
+async function toggleManualSent(batchNum) {
+  const n = Number(batchNum);
+  if (memoryManualSentBatches.has(n)) {
+    memoryManualSentBatches.delete(n);
+  } else {
+    memoryManualSentBatches.add(n);
+  }
+  const arr = [...memoryManualSentBatches];
+  const p = getPool();
+  if (p) {
+    try {
+      await p.query(
+        `INSERT INTO app_state (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2`,
+        ['manually_sent_batches', JSON.stringify(arr)]
+      );
+    } catch (e) {}
+  }
+  return memoryManualSentBatches.has(n);
 }
 
 async function persistState(updates) {
@@ -927,4 +959,5 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
+  getManualSentBatches, toggleManualSent,
 };

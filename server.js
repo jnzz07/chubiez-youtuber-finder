@@ -8,6 +8,7 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
+  getManualSentBatches, toggleManualSent,
 } = require('./scheduler');
 
 const app = express();
@@ -15,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, setHeaders: (res) => res.setHeader('Cache-Control', 'no-store') }));
 
 // Ensure runtime dirs exist
 ['data', 'logs'].forEach(dir => {
@@ -151,6 +152,20 @@ app.post('/api/instantly/push', async (req, res) => {
     const batchLabel = batch ? `Batch ${batch}` : 'All Creators';
     const result = await pushToInstantly(creators, apiKey, batchLabel);
     res.json({ success: true, ...result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── MANUAL SEND TRACKING ────────────────────────────────────────────────────
+app.get('/api/batches/manual-sent', (req, res) => {
+  res.json({ batches: getManualSentBatches() });
+});
+
+app.post('/api/batches/:batch/toggle-manual-sent', async (req, res) => {
+  const batch = parseInt(req.params.batch);
+  if (isNaN(batch)) return res.status(400).json({ error: 'Invalid batch number' });
+  try {
+    const isSent = await toggleManualSent(batch);
+    res.json({ batchNumber: batch, manuallySent: isSent });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
