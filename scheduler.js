@@ -541,7 +541,7 @@ function fmtNum(n) {
 }
 
 // ─── MAIN BATCH ───────────────────────────────────────────────────────────────
-const TARGET = 500;
+const TARGET = 150;
 
 async function runBatch(km) {
   const batchNum = (liveState.batchNumber || 0) + 1;
@@ -886,22 +886,22 @@ function startScheduler() {
       log('Daily API key quota reset');
     });
 
-    // Run every 6 hours (interval-based — survives service restarts)
-    cron.schedule('0 */6 * * *', () => {
-      log('Scheduled 6-hour interval — starting batch');
+    // Run once per day at 09:00 UTC (~150 creators/day)
+    cron.schedule('0 9 * * *', () => {
+      log('Daily scheduled batch — starting');
       executeBatch(getApiKeys());
     });
 
-    log('Scheduled: every 6 hours');
+    log('Scheduled: daily at 09:00 UTC (150 creators/day)');
 
-    // Smart startup: only run if no batch in the last 6 hours
+    // Smart startup: only run if no batch in the last 20 hours
     const lastRun = liveState.lastRunAt ? new Date(liveState.lastRunAt) : null;
     const hoursSinceLast = lastRun ? (Date.now() - lastRun.getTime()) / 3_600_000 : Infinity;
-    if (hoursSinceLast > 6) {
+    if (hoursSinceLast > 20) {
       log(`Last run: ${lastRun ? Math.round(hoursSinceLast) + 'h ago' : 'never'} — running startup batch`);
       executeBatch(getApiKeys());
     } else {
-      log(`Last run ${Math.round(hoursSinceLast)}h ago — skipping startup batch (next cron in ~${6 - Math.round(hoursSinceLast % 6)}h)`);
+      log(`Last run ${Math.round(hoursSinceLast)}h ago — skipping startup batch (next batch at 09:00 UTC)`);
     }
   }).catch(e => log('DB init error: ' + e.message));
 }
