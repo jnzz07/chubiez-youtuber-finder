@@ -23,6 +23,17 @@ function log(msg) {
 
 function getLogs() { return [...recentLogs]; }
 
+// ─── STATE FILE (fallback persistence without DB) ─────────────────────────────
+const STATE_FILE = path.join(__dirname, 'data', 'state.json');
+
+function loadStateFile() {
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch (e) { return {}; }
+}
+
+function saveStateFile(data) {
+  try { fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2)); } catch (e) {}
+}
+
 // ─── DATABASE ─────────────────────────────────────────────────────────────────
 let pool = null;
 
@@ -149,8 +160,14 @@ let liveState = {
 };
 
 async function loadState() {
+  // Always load from state.json first as baseline
+  const fileState = loadStateFile();
+  if (fileState.lastRunAt) liveState.lastRunAt = fileState.lastRunAt;
+  if (fileState.batchNumber) liveState.batchNumber = fileState.batchNumber;
+  if (fileState.totalFound) liveState.totalFound = fileState.totalFound;
+
   const p = getPool();
-  if (!p) return;
+  if (!p) return; // No DB — state.json is the only persistence
   try {
     const res = await p.query('SELECT key, value FROM app_state');
     for (const row of res.rows) {
@@ -192,6 +209,13 @@ async function toggleManualSent(batchNum) {
 
 async function persistState(updates) {
   Object.assign(liveState, updates);
+  // Always write key state fields to state.json for restart resilience
+  saveStateFile({
+    batchNumber: liveState.batchNumber,
+    totalFound: liveState.totalFound,
+    lastRunAt: liveState.lastRunAt,
+    isRunning: liveState.isRunning,
+  });
   const p = getPool();
   if (!p) return;
   for (const [key, value] of Object.entries(updates)) {
@@ -859,18 +883,26 @@ function startScheduler() {
     // Reset key manager quota tracking daily at 08:00 UTC
     cron.schedule('0 8 * * *', () => {
       if (sharedKm) sharedKm.reset();
+      log('Daily API key quota reset');
     });
 
-    // Run 3x/day: 02:00, 10:00, 18:00 UTC
-    cron.schedule('0 2 * * *', () => { executeBatch(getApiKeys()); });
-    cron.schedule('0 10 * * *', () => { executeBatch(getApiKeys()); });
-    cron.schedule('0 18 * * *', () => { executeBatch(getApiKeys()); });
+    // Run every 6 hours (interval-based — survives service restarts)
+    cron.schedule('0 */6 * * *', () => {
+      log('Scheduled 6-hour interval — starting batch');
+      executeBatch(getApiKeys());
+    });
 
-    log('Scheduled: 02:00, 10:00, 18:00 UTC daily');
+    log('Scheduled: every 6 hours');
 
-    // Run immediately on startup
-    log('Running startup batch...');
-    executeBatch(getApiKeys());
+    // Smart startup: only run if no batch in the last 6 hours
+    const lastRun = liveState.lastRunAt ? new Date(liveState.lastRunAt) : null;
+    const hoursSinceLast = lastRun ? (Date.now() - lastRun.getTime()) / 3_600_000 : Infinity;
+    if (hoursSinceLast > 6) {
+      log(`Last run: ${lastRun ? Math.round(hoursSinceLast) + 'h ago' : 'never'} — running startup batch`);
+      executeBatch(getApiKeys());
+    } else {
+      log(`Last run ${Math.round(hoursSinceLast)}h ago — skipping startup batch (next cron in ~${6 - Math.round(hoursSinceLast % 6)}h)`);
+    }
   }).catch(e => log('DB init error: ' + e.message));
 }
 
