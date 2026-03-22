@@ -990,6 +990,13 @@ async function savePersonalization(entries) {
   }
 }
 
+async function resetEnrichment() {
+  const p = getPool();
+  if (!p) return 0;
+  const { rowCount } = await p.query(`UPDATE creators SET vibe=NULL, praise=NULL, looking_forward=NULL`);
+  return rowCount;
+}
+
 async function enrichBatch(size = 10) {
   const p = getPool();
   if (!p) return 0;
@@ -1099,5 +1106,5 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch, resetEnrichment,
 };

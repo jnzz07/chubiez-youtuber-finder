@@ -8,7 +8,7 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch, resetEnrichment,
 } = require('./scheduler');
 
 const app = express();
@@ -143,6 +143,13 @@ app.get('/api/download/csv', async (req, res) => {
     res.send(csv);
     const emails = data.map(r => r.email).filter(Boolean);
     markInstantlySent(emails).catch(() => {});
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/enrich/reset', async (req, res) => {
+  try {
+    const count = await resetEnrichment();
+    res.json({ ok: true, reset: count });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
