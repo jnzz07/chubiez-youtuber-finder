@@ -775,7 +775,7 @@ async function runBatch(km) {
 // ─── PERSONALIZATION ──────────────────────────────────────────────────────────
 async function generatePersonalization(rows) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return rows;
+  if (!apiKey || !apiKey.trim()) { log('generatePersonalization: ANTHROPIC_API_KEY not set, skipping'); return rows; }
 
   const client = new Anthropic({ apiKey });
 
@@ -812,7 +812,7 @@ Respond ONLY with a JSON array in this exact format, no markdown, no explanation
       max_tokens: 2048,
       messages: [{ role: 'user', content: prompt }],
     });
-    const raw = message.content[0].text.trim();
+    const raw = message.content[0].text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '');
     const parsed = JSON.parse(raw);
     const enriched = [...rows];
     for (const p of parsed) {
