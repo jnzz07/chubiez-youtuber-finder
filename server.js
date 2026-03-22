@@ -8,7 +8,7 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization,
 } = require('./scheduler');
 
 const app = express();
@@ -92,8 +92,9 @@ app.get('/api/results/all', async (req, res) => {
 // ─── DOWNLOADS ───────────────────────────────────────────────────────────────
 app.get('/api/download', async (req, res) => {
   try {
-    const rows = await getLastResults();
-    if (rows.length === 0) return res.status(404).json({ error: 'No results yet' });
+    const raw = await getLastResults();
+    if (raw.length === 0) return res.status(404).json({ error: 'No results yet' });
+    const rows = await generatePersonalization(raw);
     const XLSX = require('xlsx');
     const wb = generateExcel(rows);
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -108,8 +109,9 @@ app.get('/api/download', async (req, res) => {
 app.get('/api/download/csv', async (req, res) => {
   try {
     const batch = req.query.batch;
-    const all = await getLastResults();
-    const data = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
+    const allRaw = await getLastResults();
+    const allEnriched = await generatePersonalization(allRaw);
+    const data = batch ? allEnriched.filter(r => String(r.batch_number) === String(batch)) : allEnriched;
     if (data.length === 0) return res.status(404).json({ error: 'No results found' });
 
     const cols = [
@@ -117,12 +119,14 @@ app.get('/api/download/csv', async (req, res) => {
       'avg_views', 'avg_likes', 'avg_comments', 'like_ratio', 'comment_ratio',
       'country', 'upload_frequency', 'total_views', 'video_count',
       'channel_url', 'thumbnail_url', 'date_found', 'batch_number',
+      'vibe', 'praise', 'looking_forward',
     ];
     const headers = [
       'Name', 'Handle', 'Email', 'Niche', 'Subscribers',
       'Avg Views', 'Avg Likes', 'Avg Comments', 'Like Ratio', 'Comment Ratio',
       'Country', 'Uploads/Mo', 'Total Views', 'Video Count',
       'Channel URL', 'Thumbnail URL', 'Date Found', 'Batch',
+      'VIBE', 'PRAISE', 'LOOKING FORWARD',
     ];
 
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;

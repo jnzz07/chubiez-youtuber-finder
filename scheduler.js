@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
 const cron = require('node-cron');
+const Anthropic = require('@anthropic-ai/sdk');
 
 // ─── LOGGING ─────────────────────────────────────────────────────────────────
 const LOG_FILE = path.join(__dirname, 'logs', 'scheduler.log');
@@ -771,6 +772,61 @@ async function runBatch(km) {
 }
 
 // ─── EXCEL EXPORT ─────────────────────────────────────────────────────────────
+// ─── PERSONALIZATION ──────────────────────────────────────────────────────────
+async function generatePersonalization(rows) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return rows;
+
+  const client = new Anthropic({ apiKey });
+
+  const input = rows.map((r, i) => ({
+    i,
+    name: r.first_name || '',
+    niche: r.niche || '',
+    handle: r.handle || '',
+    avg_views: r.avg_views || 0,
+  }));
+
+  const prompt = `You are writing personalized outreach data for a comfort plushie brand (Chubiez) targeting mental health / neurodivergent YouTube creators.
+
+For each creator below, generate 3 fields:
+- vibe: 1-2 word tone descriptor (all lowercase, e.g. "grounded", "gentle", "soft-spoken")
+- praise: short specific compliment about their content approach (all lowercase, e.g. "talk about difficult topics without overdramatizing them")
+- looking_forward: a personalized "looking forward to..." sentence (first letter uppercase, ends with a full stop, e.g. "Looking forward to hearing your thoughts.")
+
+Rules:
+- vibe must reflect their actual content tone, not be generic
+- praise must be specific to what makes their content style unique
+- looking_forward must be warm and specific to them, not copy-paste
+- All three must feel like they come from someone who actually watched their channel
+
+Creators:
+${JSON.stringify(input, null, 2)}
+
+Respond ONLY with a JSON array in this exact format, no markdown, no explanation:
+[{"i":0,"vibe":"...","praise":"...","looking_forward":"..."},...]`;
+
+  try {
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const raw = message.content[0].text.trim();
+    const parsed = JSON.parse(raw);
+    const enriched = [...rows];
+    for (const p of parsed) {
+      if (enriched[p.i]) {
+        enriched[p.i] = { ...enriched[p.i], vibe: p.vibe, praise: p.praise, looking_forward: p.looking_forward };
+      }
+    }
+    return enriched;
+  } catch (e) {
+    log(`generatePersonalization error: ${e.message}`);
+    return rows;
+  }
+}
+
 const EXCEL_COLS = [
   { key: 'first_name', header: 'Name', width: 18 },
   { key: 'handle', header: 'Handle', width: 25 },
@@ -790,6 +846,9 @@ const EXCEL_COLS = [
   { key: 'thumbnail_url', header: 'Thumbnail URL', width: 45 },
   { key: 'date_found', header: 'Date Found', width: 12 },
   { key: 'batch_number', header: 'Batch', width: 8 },
+  { key: 'vibe', header: 'VIBE', width: 18 },
+  { key: 'praise', header: 'PRAISE', width: 55 },
+  { key: 'looking_forward', header: 'LOOKING FORWARD', width: 55 },
 ];
 
 function generateExcel(rows) {
@@ -991,5 +1050,5 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization,
 };
