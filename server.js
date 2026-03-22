@@ -147,8 +147,29 @@ app.get('/api/download/csv', async (req, res) => {
 });
 
 app.post('/api/enrich', async (req, res) => {
-  enrichNewCreators().catch(() => {});
-  res.json({ message: 'Enrichment started in background — check logs for progress' });
+  try {
+    await enrichNewCreators();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message, stack: e.stack });
+  }
+});
+
+app.get('/api/enrich/debug', async (req, res) => {
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const rows = await getLastResults();
+    const withoutVibe = rows.filter(r => !r.vibe).length;
+    res.json({
+      apiKeySet: !!(apiKey && apiKey.trim()),
+      apiKeyLength: apiKey ? apiKey.trim().length : 0,
+      totalCreators: rows.length,
+      creatorsWithoutVibe: withoutVibe,
+      sample: rows.slice(0, 2).map(r => ({ handle: r.handle, vibe: r.vibe, praise: r.praise })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
