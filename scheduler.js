@@ -699,12 +699,12 @@ async function runBatch(km) {
       const avgComments = stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount || 0), 0) / stats.length;
 
       // Quality thresholds
-      if (avgViews < 500) { await markSeenBatch([ch.id]); await sleep(100); continue; }
+      if (avgViews < 1000) { await markSeenBatch([ch.id]); await sleep(100); continue; }
 
       const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
 
-      if (likeRatio < 1 / 25 && commentRatio < 1 / 400) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:25 likes OR ≥ 1:400 comments
+      if (likeRatio < 1 / 12 && commentRatio < 1 / 110) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:12 likes OR ≥ 1:110 comments
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
