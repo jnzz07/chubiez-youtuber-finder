@@ -541,7 +541,7 @@ function fmtNum(n) {
 }
 
 // ─── MAIN BATCH ───────────────────────────────────────────────────────────────
-const TARGET = 150;
+const TARGET = 100;
 
 async function runBatch(km) {
   const batchNum = (liveState.batchNumber || 0) + 1;
@@ -553,7 +553,7 @@ async function runBatch(km) {
 
   // ── PHASE 1: SEARCH — collect channel IDs ─────────────────────────────────
   // Cap at 150 queries per batch (100 units each = 15,000 units total for search).
-  // Sized for 5 API keys running 3 batches/day (~16,500 units/batch, 49,500/day).
+  // Sized for 5 API keys running 5 batches/day (~16,500 units/batch, 82,500/day).
   // Queries are shuffled so every batch explores a different subset.
   const queries = shuffle(QUERIES).slice(0, 150);
   log(`Phase 1: ${queries.length} queries (${QUERIES.length} total available)`);
@@ -704,7 +704,7 @@ async function runBatch(km) {
       const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
 
-      if (likeRatio < 1 / 11 && commentRatio < 0.01) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:11 likes OR ≥ 1:100 comments
+      if (likeRatio < 1 / 12 && commentRatio < 1 / 110) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:12 likes OR ≥ 1:110 comments
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
@@ -886,22 +886,22 @@ function startScheduler() {
       log('Daily API key quota reset');
     });
 
-    // Run once per day at 09:00 UTC (~150 creators/day)
-    cron.schedule('0 9 * * *', () => {
-      log('Daily scheduled batch — starting');
+    // Run 5x per day every 5 hours (~100 creators/run, ~500 creators/day)
+    cron.schedule('0 0,5,10,15,20 * * *', () => {
+      log('Scheduled batch — starting');
       executeBatch(getApiKeys());
     });
 
-    log('Scheduled: daily at 09:00 UTC (150 creators/day)');
+    log('Scheduled: 5x daily at 00:00, 05:00, 10:00, 15:00, 20:00 UTC (~500 creators/day)');
 
     // Smart startup: only run if no batch in the last 20 hours
     const lastRun = liveState.lastRunAt ? new Date(liveState.lastRunAt) : null;
     const hoursSinceLast = lastRun ? (Date.now() - lastRun.getTime()) / 3_600_000 : Infinity;
-    if (hoursSinceLast > 20) {
+    if (hoursSinceLast > 4) {
       log(`Last run: ${lastRun ? Math.round(hoursSinceLast) + 'h ago' : 'never'} — running startup batch`);
       executeBatch(getApiKeys());
     } else {
-      log(`Last run ${Math.round(hoursSinceLast)}h ago — skipping startup batch (next batch at 09:00 UTC)`);
+      log(`Last run ${Math.round(hoursSinceLast)}h ago — skipping startup batch (next batch at 00/05/10/15/20 UTC)`);
     }
   }).catch(e => log('DB init error: ' + e.message));
 }
