@@ -1003,13 +1003,14 @@ async function enrichNewCreators() {
   try {
     const { rows } = await p.query(`SELECT * FROM creators WHERE vibe IS NULL`);
     if (!rows.length) { log('enrichNewCreators: nothing to enrich'); return; }
-    log(`enrichNewCreators: enriching ${rows.length} creators in batches of 25`);
-    const BATCH = 25;
+    log(`enrichNewCreators: enriching ${rows.length} creators in batches of 10`);
+    const BATCH = 10;
     for (let i = 0; i < rows.length; i += BATCH) {
       const chunk = rows.slice(i, i + BATCH);
       log(`enrichNewCreators: batch ${Math.floor(i/BATCH)+1}/${Math.ceil(rows.length/BATCH)}`);
       const enriched = await generatePersonalization(chunk);
       await savePersonalization(enriched.filter(r => r.vibe));
+      await new Promise(r => setTimeout(r, 500));
     }
     log(`enrichNewCreators: done`);
   } catch (e) { log(`enrichNewCreators error: ${e.message}`); }
