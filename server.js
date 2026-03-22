@@ -146,13 +146,9 @@ app.get('/api/download/csv', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/enrich', async (req, res) => {
-  try {
-    await enrichNewCreators();
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message, stack: e.stack });
-  }
+app.post('/api/enrich', (req, res) => {
+  enrichNewCreators().catch(e => console.error('enrichNewCreators failed:', e.message));
+  res.json({ ok: true, message: 'Enrichment running in background — takes a few minutes for large sets' });
 });
 
 app.get('/api/enrich/debug', async (req, res) => {
