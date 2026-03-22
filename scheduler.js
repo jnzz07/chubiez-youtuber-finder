@@ -88,6 +88,9 @@ async function initDb() {
     ['upload_frequency', 'NUMERIC'],
     ['thumbnail_url', 'TEXT'],
     ['instantly_sent_at', 'TIMESTAMPTZ'],
+    ['vibe', 'TEXT'],
+    ['praise', 'TEXT'],
+    ['looking_forward', 'TEXT'],
   ];
   for (const [col, type] of newCols) {
     await p.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS ${col} ${type}`).catch(() => {});
@@ -890,6 +893,7 @@ async function executeBatch(keys) {
       XLSX.writeFile(wb, RESULTS_PATH);
     } catch (e) { log('Excel snapshot error: ' + e.message); }
 
+    enrichNewCreators().catch(e => log(`enrichNewCreators failed: ${e.message}`));
     return { success: true, found: creators.length };
   } catch (e) {
     log('executeBatch error: ' + e.message);
@@ -978,6 +982,34 @@ async function markInstantlySent(emails) {
   } catch (e) { log(`markInstantlySent error: ${e.message}`); }
 }
 
+async function savePersonalization(entries) {
+  const p = getPool();
+  if (!p) return;
+  for (const e of entries) {
+    try {
+      await p.query(
+        `UPDATE creators SET vibe=$1, praise=$2, looking_forward=$3 WHERE handle=$4`,
+        [e.vibe, e.praise, e.looking_forward, e.handle]
+      );
+    } catch (err) { log(`savePersonalization error for ${e.handle}: ${err.message}`); }
+  }
+}
+
+async function enrichNewCreators() {
+  const p = getPool();
+  if (!p) return;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || !apiKey.trim()) return;
+  try {
+    const { rows } = await p.query(`SELECT * FROM creators WHERE vibe IS NULL`);
+    if (!rows.length) return;
+    log(`enrichNewCreators: generating personalization for ${rows.length} creators`);
+    const enriched = await generatePersonalization(rows);
+    await savePersonalization(enriched.filter(r => r.vibe));
+    log(`enrichNewCreators: done`);
+  } catch (e) { log(`enrichNewCreators error: ${e.message}`); }
+}
+
 async function pushToInstantly(creators, apiKey, batchLabel) {
   // Split already-sent from fresh
   const alreadySent = creators.filter(c => c.instantly_sent_at || memoryInstantlySent.has(c.email));
@@ -1053,5 +1085,5 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators,
 };

@@ -8,7 +8,7 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators,
 } = require('./scheduler');
 
 const app = express();
@@ -92,9 +92,8 @@ app.get('/api/results/all', async (req, res) => {
 // ─── DOWNLOADS ───────────────────────────────────────────────────────────────
 app.get('/api/download', async (req, res) => {
   try {
-    const raw = await getLastResults();
-    if (raw.length === 0) return res.status(404).json({ error: 'No results yet' });
-    const rows = await generatePersonalization(raw);
+    const rows = await getLastResults();
+    if (rows.length === 0) return res.status(404).json({ error: 'No results yet' });
     const XLSX = require('xlsx');
     const wb = generateExcel(rows);
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -109,9 +108,8 @@ app.get('/api/download', async (req, res) => {
 app.get('/api/download/csv', async (req, res) => {
   try {
     const batch = req.query.batch;
-    const allRaw = await getLastResults();
-    const allEnriched = await generatePersonalization(allRaw);
-    const data = batch ? allEnriched.filter(r => String(r.batch_number) === String(batch)) : allEnriched;
+    const all = await getLastResults();
+    const data = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
     if (data.length === 0) return res.status(404).json({ error: 'No results found' });
 
     const cols = [
@@ -146,6 +144,11 @@ app.get('/api/download/csv', async (req, res) => {
     const emails = data.map(r => r.email).filter(Boolean);
     markInstantlySent(emails).catch(() => {});
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/enrich', async (req, res) => {
+  enrichNewCreators().catch(() => {});
+  res.json({ message: 'Enrichment started in background — check logs for progress' });
 });
 
 // ─── INSTANTLY AI ─────────────────────────────────────────────────────────────
