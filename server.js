@@ -8,7 +8,7 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent,
+  getManualSentBatches, toggleManualSent, markInstantlySent,
 } = require('./scheduler');
 
 const app = express();
@@ -100,6 +100,8 @@ app.get('/api/download', async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="chubiez-creators-${Date.now()}.xlsx"`);
     res.send(buf);
+    const emails = rows.map(r => r.email).filter(Boolean);
+    markInstantlySent(emails).catch(() => {});
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -137,6 +139,8 @@ app.get('/api/download/csv', async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);
+    const emails = data.map(r => r.email).filter(Boolean);
+    markInstantlySent(emails).catch(() => {});
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

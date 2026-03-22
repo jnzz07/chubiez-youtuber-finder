@@ -991,5 +991,5 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent,
+  getManualSentBatches, toggleManualSent, markInstantlySent,
 };
