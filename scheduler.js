@@ -793,20 +793,15 @@ async function generatePersonalization(rows) {
   const prompt = `You are writing personalized outreach data for a comfort plushie brand (Chubiez) targeting mental health / neurodivergent YouTube creators.
 
 For each creator below, generate 3 fields:
-- vibe: 1-2 word tone descriptor (all lowercase, e.g. "grounded", "gentle", "soft-spoken")
-- praise: short specific compliment about their content approach (all lowercase, e.g. "talk about difficult topics without overdramatizing them")
-- looking_forward: a personalized "looking forward to..." sentence (first letter uppercase, ends with a full stop, e.g. "Looking forward to hearing your thoughts.")
 
-Rules:
-- vibe must reflect their actual content tone, not be generic
-- praise must be specific to what makes their content style unique
-- looking_forward must be warm and specific to them, not copy-paste
-- All three must feel like they come from someone who actually watched their channel
+- vibe: a single tone descriptor, all lowercase. ONE word or hyphenated word only (e.g. "grounded", "gentle", "soft-spoken", "warm"). NEVER use a comma. If you want to combine two words use "X and Y" format (e.g. "calm and direct"). Never more than 3 words total.
+- praise: a short description of what makes their content approach unique, all lowercase, NO full stop at the end. Must be written in third person describing what they do (e.g. "talk about difficult topics without overdramatizing them", "make vulnerability feel safe rather than performative", "normalize conversations people usually avoid"). Never start with "you" or "your". No period at the end.
+- looking_forward: a warm personalized sentence starting with "Looking forward to", first letter uppercase, ends with a full stop (e.g. "Looking forward to hearing your thoughts.", "Looking forward to seeing if this aligns.")
 
 Creators:
 ${JSON.stringify(input, null, 2)}
 
-Respond ONLY with a JSON array in this exact format, no markdown, no explanation:
+Respond ONLY with a JSON array, no markdown, no explanation:
 [{"i":0,"vibe":"...","praise":"...","looking_forward":"..."},...]`;
 
   try {
