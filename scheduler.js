@@ -541,7 +541,7 @@ function fmtNum(n) {
 }
 
 // ─── MAIN BATCH ───────────────────────────────────────────────────────────────
-const TARGET = 100;
+const TARGET = 120;
 
 async function runBatch(km) {
   const batchNum = (liveState.batchNumber || 0) + 1;
@@ -552,10 +552,10 @@ async function runBatch(km) {
   const discoveredIds = []; // ordered list of new channel IDs
 
   // ── PHASE 1: SEARCH — collect channel IDs ─────────────────────────────────
-  // Cap at 150 queries per batch (100 units each = 15,000 units total for search).
-  // Sized for 5 API keys running 5 batches/day (~16,500 units/batch, 82,500/day).
+  // Cap at 180 queries per batch (100 units each = 18,000 units total for search).
+  // Sized for 10 API keys running 5 batches/day (~20,000 units/batch, 100,000/day).
   // Queries are shuffled so every batch explores a different subset.
-  const queries = shuffle(QUERIES).slice(0, 150);
+  const queries = shuffle(QUERIES).slice(0, 180);
   log(`Phase 1: ${queries.length} queries (${QUERIES.length} total available)`);
   liveState.progress = { phase: 'Searching', done: 0, total: queries.length, currentName: '', foundSoFar: 0 };
 
@@ -892,7 +892,7 @@ function startScheduler() {
       executeBatch(getApiKeys());
     });
 
-    log('Scheduled: 5x daily at 00:00, 05:00, 10:00, 15:00, 20:00 UTC (~500 creators/day)');
+    log('Scheduled: 5x daily at 00:00, 05:00, 10:00, 15:00, 20:00 UTC (~600 creators/day)');
 
     // Smart startup: only run if no batch in the last 20 hours
     const lastRun = liveState.lastRunAt ? new Date(liveState.lastRunAt) : null;
