@@ -8,7 +8,7 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch,
 } = require('./scheduler');
 
 const app = express();
@@ -146,9 +146,13 @@ app.get('/api/download/csv', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/enrich', (req, res) => {
-  enrichNewCreators().catch(e => console.error('enrichNewCreators failed:', e.message));
-  res.json({ ok: true, message: 'Enrichment running in background — takes a few minutes for large sets' });
+app.post('/api/enrich', async (req, res) => {
+  try {
+    const remaining = await enrichBatch(10);
+    res.json({ ok: true, remaining });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('/api/enrich/debug', async (req, res) => {

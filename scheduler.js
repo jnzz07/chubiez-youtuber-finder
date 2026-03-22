@@ -995,6 +995,19 @@ async function savePersonalization(entries) {
   }
 }
 
+async function enrichBatch(size = 10) {
+  const p = getPool();
+  if (!p) return 0;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || !apiKey.trim()) return 0;
+  const { rows: chunk } = await p.query(`SELECT * FROM creators WHERE vibe IS NULL LIMIT $1`, [size]);
+  if (!chunk.length) return 0;
+  const enriched = await generatePersonalization(chunk);
+  await savePersonalization(enriched.filter(r => r.vibe));
+  const { rows: remaining } = await p.query(`SELECT COUNT(*) FROM creators WHERE vibe IS NULL`);
+  return parseInt(remaining[0].count);
+}
+
 async function enrichNewCreators() {
   const p = getPool();
   if (!p) return;
@@ -1091,5 +1104,5 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators,
+  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch,
 };
