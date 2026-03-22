@@ -777,7 +777,7 @@ async function generatePersonalization(rows) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !apiKey.trim()) { log('generatePersonalization: ANTHROPIC_API_KEY not set, skipping'); return rows; }
 
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic.default({ apiKey });
 
   const input = rows.map((r, i) => ({
     i,
