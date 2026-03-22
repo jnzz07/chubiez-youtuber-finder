@@ -807,13 +807,16 @@ Respond ONLY with a JSON array in this exact format, no markdown, no explanation
 [{"i":0,"vibe":"...","praise":"...","looking_forward":"..."},...]`;
 
   try {
+    log(`generatePersonalization: calling Claude for ${rows.length} creators`);
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
     const raw = message.content[0].text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '');
+    log(`generatePersonalization: raw response length=${raw.length}, preview=${raw.slice(0, 100)}`);
     const parsed = JSON.parse(raw);
+    log(`generatePersonalization: parsed ${parsed.length} entries`);
     const enriched = [...rows];
     for (const p of parsed) {
       if (enriched[p.i]) {
@@ -822,7 +825,7 @@ Respond ONLY with a JSON array in this exact format, no markdown, no explanation
     }
     return enriched;
   } catch (e) {
-    log(`generatePersonalization error: ${e.message}`);
+    log(`generatePersonalization error: ${e.message} | stack: ${e.stack}`);
     return rows;
   }
 }
