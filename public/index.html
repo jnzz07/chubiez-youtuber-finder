@@ -250,7 +250,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
         <input type="text" id="search" placeholder="Search name, handle, niche, email…" oninput="renderCards()"/>
       </div>
       <a id="dl-csv" href="/api/download/csv" class="btn btn-green">↓ CSV</a>
-      <a href="/api/download" class="btn">↓ Excel</a>
+      <a id="dl-excel" href="/api/download" class="btn">↓ Excel</a>
       <button class="btn btn-green" id="instantly-btn" onclick="pushToInstantly()">⚡ Send to Instantly</button>
       <button class="btn btn-red" id="run-btn" onclick="triggerRun()">▶ Run now</button>
     </div>
@@ -271,7 +271,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
     </select>
     <span class="filter-sep">|</span>
     <span class="filter-label">Email</span>
-    <select id="email-filter" onchange="renderCards()" style="background:#1e1e1e;border:1px solid #222;border-radius:6px;color:#aaa;font-size:12px;padding:4px 8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
+    <select id="email-filter" onchange="updateCsvLink();renderCards()" style="background:#1e1e1e;border:1px solid #222;border-radius:6px;color:#aaa;font-size:12px;padding:4px 8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
       <option value="">All</option>
       <option value="has">Has email</option>
       <option value="none">No email</option>
@@ -347,8 +347,13 @@ function setSort(s) {
   renderCards();
 }
 function updateCsvLink() {
-  const link = document.getElementById('dl-csv');
-  link.href = activeBatch === 'all' ? '/api/download/csv' : '/api/download/csv?batch=' + activeBatch;
+  const emailFilter = document.getElementById('email-filter').value;
+  const csvParams = [];
+  const xlsxParams = [];
+  if (activeBatch !== 'all') csvParams.push('batch=' + activeBatch);
+  if (emailFilter === 'has') { csvParams.push('hasEmail=true'); xlsxParams.push('hasEmail=true'); }
+  document.getElementById('dl-csv').href = '/api/download/csv' + (csvParams.length ? '?' + csvParams.join('&') : '');
+  document.getElementById('dl-excel').href = '/api/download' + (xlsxParams.length ? '?' + xlsxParams.join('&') : '');
 }
 function updateNicheFilter(results) {
   const niches = [...new Set(results.map(r => r.niche || '').filter(Boolean))].sort();

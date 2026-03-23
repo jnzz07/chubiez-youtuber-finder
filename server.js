@@ -92,8 +92,11 @@ app.get('/api/results/all', async (req, res) => {
 // ─── DOWNLOADS ───────────────────────────────────────────────────────────────
 app.get('/api/download', async (req, res) => {
   try {
-    const rows = await getLastResults();
-    if (rows.length === 0) return res.status(404).json({ error: 'No results yet' });
+    const all = await getLastResults();
+    // Exclude creators with email that have already been downloaded
+    let rows = all.filter(r => !(r.email && r.email !== 'Not listed' && r.instantly_sent_at));
+    if (req.query.hasEmail === 'true') rows = rows.filter(r => r.email && r.email !== 'Not listed');
+    if (rows.length === 0) return res.status(404).json({ error: 'No new results to download' });
     const XLSX = require('xlsx');
     const wb = generateExcel(rows);
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -109,8 +112,11 @@ app.get('/api/download/csv', async (req, res) => {
   try {
     const batch = req.query.batch;
     const all = await getLastResults();
-    const data = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
-    if (data.length === 0) return res.status(404).json({ error: 'No results found' });
+    let data = batch ? all.filter(r => String(r.batch_number) === String(batch)) : all;
+    // Exclude creators with email that have already been downloaded
+    data = data.filter(r => !(r.email && r.email !== 'Not listed' && r.instantly_sent_at));
+    if (req.query.hasEmail === 'true') data = data.filter(r => r.email && r.email !== 'Not listed');
+    if (data.length === 0) return res.status(404).json({ error: 'No new results found' });
 
     const cols = [
       'first_name', 'handle', 'email', 'niche', 'subscriber_count',
