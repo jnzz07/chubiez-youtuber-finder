@@ -545,7 +545,7 @@ function fmtNum(n) {
 }
 
 // ─── MAIN BATCH ───────────────────────────────────────────────────────────────
-const TARGET = 120;
+const TARGET = 200;
 
 async function runBatch(km) {
   const batchNum = (liveState.batchNumber || 0) + 1;
@@ -615,7 +615,7 @@ async function runBatch(km) {
       for (const ch of data?.items || []) {
         const subs = parseInt(ch.statistics?.subscriberCount || 0);
         const videoCount = parseInt(ch.statistics?.videoCount || 0);
-        if (subs < 1000 || subs > 500000) continue;
+        if (subs < 500) continue;
         if (videoCount < 5) continue;
 
         const desc = ch.snippet?.description || '';
@@ -708,7 +708,7 @@ async function runBatch(km) {
       const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
 
-      if (likeRatio < 1 / 12 && commentRatio < 1 / 110) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:12 likes OR ≥ 1:110 comments
+      if (likeRatio < 1 / 15 && commentRatio < 1 / 150) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:15 likes OR ≥ 1:150 comments
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
