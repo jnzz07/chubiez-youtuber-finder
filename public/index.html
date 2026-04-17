@@ -160,6 +160,22 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
 .running-banner .found-count{font-size:11px;color:#4ade80;min-width:70px}
 .running-banner .current-q{font-size:11px;color:#666;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* ── LOOKUP PANEL ── */
+.lookup-panel{padding:24px;max-width:800px}
+.lookup-title{font-size:18px;font-weight:700;color:#f0f0f0;margin-bottom:4px}
+.lookup-sub{font-size:12px;color:#555;margin-bottom:20px}
+.lookup-form{display:flex;gap:8px;margin-bottom:24px}
+.lookup-input{flex:1;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;font-size:13px;color:#f0f0f0;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
+.lookup-input:focus{border-color:#e53e3e}
+.lookup-input::placeholder{color:#444}
+.lookup-result{display:none}
+.lookup-result.visible{display:block}
+.lookup-error{background:#1a0a0a;border:1px solid #5a1e1e;border-radius:10px;padding:16px 18px;color:#f87171;font-size:13px}
+.price-tag{background:#0a1a0a;border:1px solid #166534;border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.price-amount{font-size:28px;font-weight:700;color:#4ade80;font-variant-numeric:tabular-nums}
+.price-label{font-size:11px;color:#4ade80;opacity:.7;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.price-note{font-size:11px;color:#444;margin-left:auto;text-align:right;line-height:1.5}
+
 /* ── MISC ── */
 .spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -208,8 +224,14 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
     </div>
 
     <div class="sidebar-section">
+      <div class="sidebar-label">Tools</div>
+      <div class="sidebar-item" id="item-lookup" onclick="selectView('lookup')">
+        <span>🔍 Creator Lookup</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Views</div>
-      <div class="sidebar-item active" id="item-all" onclick="selectBatch('all')">
+      <div class="sidebar-item active" id="item-all" onclick="selectView('all')">
         <span>All creators</span><span class="badge" id="count-all">0</span>
       </div>
     </div>
@@ -228,8 +250,21 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
   </div>
 </div>
 
+<!-- LOOKUP VIEW -->
+<div id="view-lookup" style="display:none;flex:1;overflow-y:auto;background:#0f0f0f">
+  <div class="lookup-panel">
+    <div class="lookup-title">Creator Lookup</div>
+    <div class="lookup-sub">Paste a YouTube channel URL, @handle, or channel ID to pull full metrics and ideal deal price.</div>
+    <div class="lookup-form">
+      <input class="lookup-input" id="lookup-input" type="text" placeholder="e.g. https://youtube.com/@handle or UC…" onkeydown="if(event.key==='Enter')runLookup()"/>
+      <button class="btn btn-red" id="lookup-btn" onclick="runLookup()">Lookup</button>
+    </div>
+    <div id="lookup-result" class="lookup-result"></div>
+  </div>
+</div>
+
 <!-- MAIN -->
-<div class="main">
+<div id="view-main" class="main">
   <!-- Running progress banner -->
   <div class="running-banner" id="running-banner">
     <span class="phase-label" id="banner-phase">Searching</span>
@@ -289,6 +324,8 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
     <div id="cards"></div>
   </div>
 </div>
+
+</div><!-- /view-main -->
 
 <div class="toast" id="toast"></div>
 
@@ -370,25 +407,37 @@ function toggleLog() {
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
-function selectBatch(b) {
-  activeBatch = b;
+function selectView(v) {
   document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById(b === 'all' ? 'item-all' : 'item-batch-' + b);
+  const lookupView = document.getElementById('view-lookup');
+  const mainView   = document.getElementById('view-main');
+  if (v === 'lookup') {
+    const el = document.getElementById('item-lookup');
+    if (el) el.classList.add('active');
+    lookupView.style.display = 'flex';
+    mainView.style.display = 'none';
+    return;
+  }
+  lookupView.style.display = 'none';
+  mainView.style.display = 'flex';
+  activeBatch = v;
+  const el = document.getElementById(v === 'all' ? 'item-all' : 'item-batch-' + v);
   if (el) el.classList.add('active');
   const title = document.getElementById('section-title');
   const sub = document.getElementById('section-sub');
-  if (b === 'all') {
+  if (v === 'all') {
     title.textContent = 'All creators';
     sub.textContent = allResults.length + ' creators found';
   } else {
-    const items = batches[b] || [];
+    const items = batches[v] || [];
     const date = items[0]?.date_found || '';
-    title.textContent = 'Batch ' + b;
+    title.textContent = 'Batch ' + v;
     sub.textContent = (date ? 'Found on ' + date + ' · ' : '') + items.length + ' creators';
   }
   updateCsvLink();
   renderCards();
 }
+function selectBatch(b) { selectView(b); }
 
 function buildSidebar() {
   const keys = Object.keys(batches).map(Number).sort((a, b) => b - a);
@@ -508,6 +557,8 @@ function renderCards() {
           <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(r.avg_comments)}</div></div>
           <div class="metric${hlFreq}"><div class="ml">Uploads/mo</div><div class="mv">${fmtFreq(freq)}</div></div>
           <div class="metric"><div class="ml">Total views</div><div class="mv">${fmt(r.total_views)}</div></div>
+          ${r.ideal_price != null ? `<div class="metric" style="border-color:#1a3a1a"><div class="ml" style="color:#4ade80">Ideal price</div><div class="mv" style="color:#4ade80">$${Number(r.ideal_price).toFixed(2)}</div></div>` : ''}
+          ${r.last_posted_at ? `<div class="metric"><div class="ml">Last posted</div><div class="mv" style="font-size:11px">${fmtDate(r.last_posted_at)}</div></div>` : ''}
         </div>
         <div class="footer-row">
           ${email
@@ -740,6 +791,86 @@ async function toggleManualSent(batchNum) {
     buildSidebar();
   } catch (e) {
     showToast('Error: ' + e.message, 4000);
+  }
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (e) { return iso.slice(0, 10); }
+}
+
+// ── CREATOR LOOKUP ────────────────────────────────────────────────────────────
+async function runLookup() {
+  const input = document.getElementById('lookup-input').value.trim();
+  if (!input) return;
+  const btn = document.getElementById('lookup-btn');
+  const result = document.getElementById('lookup-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Looking up…';
+  result.className = 'lookup-result';
+  result.innerHTML = '';
+  try {
+    const r = await fetch('/api/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel: input }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      result.className = 'lookup-result visible';
+      result.innerHTML = `<div class="lookup-error">⚠ ${escHtml(d.error || 'Not found')}</div>`;
+      return;
+    }
+    const price = d.ideal_price != null ? Number(d.ideal_price).toFixed(2) : null;
+    const maxRaw = d.avg_views != null ? (Number(d.avg_views) * 25 / 1000).toFixed(2) : null;
+    result.className = 'lookup-result visible';
+    result.innerHTML = `
+      ${price != null ? `
+      <div class="price-tag">
+        <div>
+          <div class="price-amount">$${price}</div>
+          <div class="price-label">Ideal price / post</div>
+        </div>
+        <div class="price-note">Based on ${fmt(d.avg_views)} avg views<br>at $25 per 1,000 views CPM</div>
+      </div>` : ''}
+      <div class="card" style="margin-bottom:0">
+        <div class="avatar">${d.thumbnail_url
+          ? `<img src="${escAttr(d.thumbnail_url)}" alt="${escAttr(d.first_name)}" style="width:100%;height:100%;object-fit:cover;border-radius:9px">`
+          : initials(d.first_name)}</div>
+        <div class="info">
+          <div class="name-row">
+            <span class="name">${escHtml(d.first_name || 'Unknown')}</span>
+            <span class="handle">${escHtml(d.handle || '')}</span>
+            ${d.niche ? `<span class="niche-tag">${escHtml(d.niche)}</span>` : ''}
+            ${d.country ? `<span class="country-tag">${escHtml(d.country)}</span>` : ''}
+          </div>
+          <div class="metrics">
+            <div class="metric highlight"><div class="ml">Avg views (last 10)</div><div class="mv">${fmt(d.avg_views)}</div></div>
+            <div class="metric"><div class="ml">Subscribers</div><div class="mv">${fmt(d.subscriber_count)}</div></div>
+            <div class="metric"><div class="ml">Like ratio</div><div class="mv">${fmtR(d.like_ratio)}</div></div>
+            <div class="metric"><div class="ml">Comment ratio</div><div class="mv">${fmtR(d.comment_ratio)}</div></div>
+            <div class="metric"><div class="ml">Avg likes</div><div class="mv">${fmt(d.avg_likes)}</div></div>
+            <div class="metric"><div class="ml">Avg comments</div><div class="mv">${fmt(d.avg_comments)}</div></div>
+            <div class="metric"><div class="ml">Uploads/mo</div><div class="mv">${fmtFreq(d.upload_frequency)}</div></div>
+            <div class="metric"><div class="ml">Total views</div><div class="mv">${fmt(d.total_views)}</div></div>
+            <div class="metric"><div class="ml">Video count</div><div class="mv">${fmt(d.video_count)}</div></div>
+            <div class="metric"><div class="ml">Last posted</div><div class="mv" style="font-size:11px">${fmtDate(d.last_posted_at)}</div></div>
+          </div>
+          <div class="footer-row">
+            ${d.email ? `<span class="email-tag" onclick="copyEmail('${escAttr(d.email)}',this)">✉ ${escHtml(d.email)}</span>` : `<span class="email-tag no-email">No email listed</span>`}
+            ${d.channel_url ? `<a class="ytlink" href="${escAttr(d.channel_url)}" target="_blank" rel="noopener">▶ Channel</a>` : ''}
+          </div>
+        </div>
+      </div>`;
+  } catch (e) {
+    result.className = 'lookup-result visible';
+    result.innerHTML = `<div class="lookup-error">⚠ ${escHtml(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Lookup';
   }
 }
 

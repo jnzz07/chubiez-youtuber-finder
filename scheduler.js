@@ -91,6 +91,8 @@ async function initDb() {
     ['vibe', 'TEXT'],
     ['praise', 'TEXT'],
     ['looking_forward', 'TEXT'],
+    ['ideal_price', 'NUMERIC'],
+    ['last_posted_at', 'TEXT'],
   ];
   for (const [col, type] of newCols) {
     await p.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS ${col} ${type}`).catch(() => {});
@@ -113,8 +115,8 @@ async function saveCreator(row) {
       INSERT INTO creators
         (first_name,handle,email,avg_views,avg_likes,avg_comments,like_ratio,comment_ratio,
          subscriber_count,niche,channel_url,date_found,batch_number,video_count,total_views,
-         country,upload_frequency,thumbnail_url)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+         country,upload_frequency,thumbnail_url,ideal_price,last_posted_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
       ON CONFLICT (handle) DO UPDATE SET
         avg_views=EXCLUDED.avg_views, avg_likes=EXCLUDED.avg_likes,
         avg_comments=EXCLUDED.avg_comments, like_ratio=EXCLUDED.like_ratio,
@@ -122,11 +124,13 @@ async function saveCreator(row) {
         email=COALESCE(EXCLUDED.email, creators.email),
         niche=EXCLUDED.niche, video_count=EXCLUDED.video_count,
         total_views=EXCLUDED.total_views, country=EXCLUDED.country,
-        upload_frequency=EXCLUDED.upload_frequency, thumbnail_url=EXCLUDED.thumbnail_url
+        upload_frequency=EXCLUDED.upload_frequency, thumbnail_url=EXCLUDED.thumbnail_url,
+        ideal_price=EXCLUDED.ideal_price, last_posted_at=EXCLUDED.last_posted_at
     `, [row.first_name, row.handle, row.email, row.avg_views, row.avg_likes,
         row.avg_comments, row.like_ratio, row.comment_ratio, row.subscriber_count,
         row.niche, row.channel_url, row.date_found, row.batch_number,
-        row.video_count, row.total_views, row.country, row.upload_frequency, row.thumbnail_url]);
+        row.video_count, row.total_views, row.country, row.upload_frequency, row.thumbnail_url,
+        row.ideal_price, row.last_posted_at]);
   } catch (e) { log(`Save error ${row.handle}: ${e.message}`); }
 }
 
@@ -544,6 +548,58 @@ function fmtNum(n) {
   return Math.round(x).toString();
 }
 
+// ─── CHANNEL METRICS HELPER ──────────────────────────────────────────────────
+// Fetches stats for the last 10 videos of a channel and returns computed metrics.
+// No quality-filtering applied — caller decides what to do with the numbers.
+async function fetchChannelMetrics(ch, km) {
+  const plData = await ytGet('playlistItems', {
+    part: 'contentDetails',
+    playlistId: ch.uploadsPlaylistId,
+    maxResults: 10,
+  }, km);
+
+  const plItems = plData?.items || [];
+  const videoIds = plItems.map(i => i.contentDetails?.videoId).filter(Boolean);
+  if (videoIds.length === 0) return null;
+
+  const lastPostedAt = plItems[0]?.contentDetails?.videoPublishedAt || null;
+
+  await sleep(150);
+
+  const vidData = await ytGet('videos', {
+    part: 'statistics',
+    id: videoIds.join(','),
+  }, km);
+
+  const stats = vidData?.items || [];
+  if (stats.length === 0) return null;
+
+  const avgViews   = stats.reduce((s, v) => s + parseInt(v.statistics?.viewCount   || 0), 0) / stats.length;
+  const avgLikes   = stats.reduce((s, v) => s + parseInt(v.statistics?.likeCount   || 0), 0) / stats.length;
+  const avgComments= stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount|| 0), 0) / stats.length;
+
+  const likeRatio    = avgViews > 0 ? avgLikes    / avgViews : 0;
+  const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
+
+  const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
+  const ageMonths = Math.max(ageMs / (1000 * 60 * 60 * 24 * 30.5), 1);
+  const uploadFrequency = parseFloat((ch.videoCount / ageMonths).toFixed(2));
+
+  const idealPrice = parseFloat((avgViews * 25 / 1000).toFixed(2));
+
+  return {
+    avg_views:        Math.round(avgViews),
+    avg_likes:        Math.round(avgLikes),
+    avg_comments:     Math.round(avgComments),
+    like_ratio:       parseFloat(likeRatio.toFixed(4)),
+    comment_ratio:    parseFloat(commentRatio.toFixed(4)),
+    upload_frequency: uploadFrequency,
+    last_posted_at:   lastPostedAt,
+    ideal_price:      idealPrice,
+    most_recent_date: lastPostedAt, // alias used for recency check in batch
+  };
+}
+
 // ─── MAIN BATCH ───────────────────────────────────────────────────────────────
 const TARGET = 200;
 
@@ -665,7 +721,7 @@ async function runBatch(km) {
     liveState.progress.foundSoFar = creators.length;
 
     try {
-      // Get video IDs from uploads playlist — costs 1 unit (vs 100 for search)
+      // Recency pre-check via playlistItems (also used inside fetchChannelMetrics)
       const plData = await ytGet('playlistItems', {
         part: 'contentDetails',
         playlistId: ch.uploadsPlaylistId,
@@ -687,9 +743,7 @@ async function runBatch(km) {
         if (daysSince > 90) { await markSeenBatch([ch.id]); await sleep(100); continue; }
       }
 
-      await sleep(150);
-
-      // Batch fetch video stats — all IDs in one call (1 unit for up to 50)
+      // Fetch video stats
       const vidData = await ytGet('videos', {
         part: 'statistics',
         id: videoIds.join(','),
@@ -698,22 +752,24 @@ async function runBatch(km) {
       const stats = vidData?.items || [];
       if (stats.length === 0) { await markSeenBatch([ch.id]); continue; }
 
-      const avgViews = stats.reduce((s, v) => s + parseInt(v.statistics?.viewCount || 0), 0) / stats.length;
-      const avgLikes = stats.reduce((s, v) => s + parseInt(v.statistics?.likeCount || 0), 0) / stats.length;
-      const avgComments = stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount || 0), 0) / stats.length;
+      const avgViews    = stats.reduce((s, v) => s + parseInt(v.statistics?.viewCount   || 0), 0) / stats.length;
+      const avgLikes    = stats.reduce((s, v) => s + parseInt(v.statistics?.likeCount   || 0), 0) / stats.length;
+      const avgComments = stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount|| 0), 0) / stats.length;
 
       // Quality thresholds
       if (avgViews < 1000) { await markSeenBatch([ch.id]); await sleep(100); continue; }
 
-      const likeRatio = avgViews > 0 ? avgLikes / avgViews : 0;
+      const likeRatio    = avgViews > 0 ? avgLikes    / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
 
-      if (likeRatio < 1 / 15 && commentRatio < 1 / 150) { await markSeenBatch([ch.id]); await sleep(100); continue; }  // ≥ 1:15 likes OR ≥ 1:150 comments
+      if (likeRatio < 1 / 15 && commentRatio < 1 / 150) { await markSeenBatch([ch.id]); await sleep(100); continue; }
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
       const ageMonths = Math.max(ageMs / (1000 * 60 * 60 * 24 * 30.5), 1);
       const uploadFrequency = parseFloat((ch.videoCount / ageMonths).toFixed(2));
+
+      const idealPrice = parseFloat((avgViews * 25 / 1000).toFixed(2));
 
       const handle = ch.customUrl || `channel/${ch.id}`;
       const channelUrl = ch.customUrl
@@ -724,28 +780,30 @@ async function runBatch(km) {
         first_name: ch.title.split(' ')[0] || ch.title,
         handle,
         email: ch.email || null,
-        avg_views: Math.round(avgViews),
-        avg_likes: Math.round(avgLikes),
-        avg_comments: Math.round(avgComments),
-        like_ratio: parseFloat(likeRatio.toFixed(4)),
-        comment_ratio: parseFloat(commentRatio.toFixed(4)),
+        avg_views:        Math.round(avgViews),
+        avg_likes:        Math.round(avgLikes),
+        avg_comments:     Math.round(avgComments),
+        like_ratio:       parseFloat(likeRatio.toFixed(4)),
+        comment_ratio:    parseFloat(commentRatio.toFixed(4)),
         subscriber_count: ch.subscriberCount,
-        niche: getNiche(ch.title, ch.description, ch.keywords),
-        channel_url: channelUrl,
-        date_found: new Date().toISOString().split('T')[0],
-        batch_number: batchNum,
-        video_count: ch.videoCount,
-        total_views: ch.totalViews,
-        country: ch.country || null,
+        niche:            getNiche(ch.title, ch.description, ch.keywords),
+        channel_url:      channelUrl,
+        date_found:       new Date().toISOString().split('T')[0],
+        batch_number:     batchNum,
+        video_count:      ch.videoCount,
+        total_views:      ch.totalViews,
+        country:          ch.country || null,
         upload_frequency: uploadFrequency,
-        thumbnail_url: ch.thumbnail || null,
+        thumbnail_url:    ch.thumbnail || null,
+        ideal_price:      idealPrice,
+        last_posted_at:   mostRecentDate || null,
       };
 
       await saveCreator(creator);
       await markSeenBatch([ch.id]);
       creators.push(creator);
 
-      log(`✓ [${creators.length}/${TARGET}] ${ch.title} | ${fmtNum(avgViews)} avg views | ${creator.niche}${creator.email ? ' | 📧' : ''}`);
+      log(`✓ [${creators.length}/${TARGET}] ${ch.title} | ${fmtNum(avgViews)} avg views | $${idealPrice}/post | ${creator.niche}${creator.email ? ' | 📧' : ''}`);
 
       if (creators.length % 50 === 0) {
         await persistState({ totalFound: (liveState.totalFound || 0) });
@@ -977,6 +1035,28 @@ async function markInstantlySent(emails) {
   } catch (e) { log(`markInstantlySent error: ${e.message}`); }
 }
 
+async function resetSentLast2Days() {
+  const p = getPool();
+  const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  if (!p) {
+    // In-memory mode: remove from memoryInstantlySent for recent creators
+    const recent = memoryResults.filter(c => c.date_found && new Date(c.date_found) >= new Date(cutoff));
+    recent.forEach(c => { if (c.email) memoryInstantlySent.delete(c.email); });
+    return recent.length;
+  }
+  try {
+    const result = await p.query(
+      `UPDATE creators SET instantly_sent_at = NULL WHERE date_found >= $1 AND instantly_sent_at IS NOT NULL`,
+      [cutoff]
+    );
+    log(`resetSentLast2Days: cleared ${result.rowCount} creators`);
+    return result.rowCount;
+  } catch (e) {
+    log(`resetSentLast2Days error: ${e.message}`);
+    throw e;
+  }
+}
+
 async function savePersonalization(entries) {
   const p = getPool();
   if (!p) return;
@@ -1103,8 +1183,103 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
   return { sent, skipped: fresh.length - withEmail.length, alreadySent: alreadySent.length, failed, campaignName };
 }
 
+// ─── SINGLE CREATOR LOOKUP ───────────────────────────────────────────────────
+// Resolves a YouTube channel URL / @handle / channel-ID to a full metric profile.
+// Does NOT apply quality thresholds — returns raw metrics regardless of size.
+async function lookupCreator(input) {
+  const keys = getApiKeys();
+  if (!keys.length) throw new Error('No YouTube API keys configured');
+  const km = new KeyManager(keys);
+
+  // Parse input into either a channelId ("UC...") or a handle/username string
+  let channelId = null;
+  let handle = null;
+
+  const s = (input || '').trim().replace(/\/$/, '');
+
+  // Full URLs
+  const channelMatch = s.match(/youtube\.com\/channel\/(UC[\w-]+)/i);
+  const handleMatch  = s.match(/youtube\.com\/@?([\w.-]+)/i);
+
+  if (channelMatch) {
+    channelId = channelMatch[1];
+  } else if (handleMatch) {
+    handle = handleMatch[1].replace(/^@/, '');
+  } else if (/^UC[\w-]{20,}$/.test(s)) {
+    channelId = s;
+  } else {
+    // Bare handle with or without @
+    handle = s.replace(/^@/, '');
+  }
+
+  // Build channel query params
+  const baseParams = { part: 'snippet,statistics,contentDetails,brandingSettings', maxResults: 1 };
+  let chData = null;
+
+  if (channelId) {
+    chData = await ytGet('channels', { ...baseParams, id: channelId }, km);
+  } else {
+    // Try forHandle first (newer API), fall back to forUsername
+    chData = await ytGet('channels', { ...baseParams, forHandle: handle }, km);
+    if (!chData?.items?.length) {
+      chData = await ytGet('channels', { ...baseParams, forUsername: handle }, km);
+    }
+  }
+
+  const ch = chData?.items?.[0];
+  if (!ch) return null;
+
+  const desc        = ch.snippet?.description || '';
+  const brandDesc   = ch.brandingSettings?.channel?.description || '';
+  const keywords    = ch.brandingSettings?.channel?.keywords || '';
+  const uploadsId   = ch.contentDetails?.relatedPlaylists?.uploads || '';
+  if (!uploadsId) return null;
+
+  const subs        = parseInt(ch.statistics?.subscriberCount || 0);
+  const videoCount  = parseInt(ch.statistics?.videoCount || 0);
+  const totalViews  = parseInt(ch.statistics?.viewCount || 0);
+  const publishedAt = ch.snippet?.publishedAt || '';
+  const customUrl   = ch.snippet?.customUrl || '';
+  const title       = ch.snippet?.title || '';
+  const country     = ch.snippet?.country || '';
+  const thumbnail   = ch.snippet?.thumbnails?.medium?.url || ch.snippet?.thumbnails?.default?.url || '';
+
+  // Build the ch object shape expected by fetchChannelMetrics
+  const chObj = { uploadsPlaylistId: uploadsId, publishedAt, videoCount };
+
+  const metrics = await fetchChannelMetrics(chObj, km);
+  if (!metrics) return null;
+
+  const channelUrl = customUrl
+    ? `https://youtube.com/${customUrl}`
+    : `https://youtube.com/channel/${ch.id}`;
+
+  return {
+    first_name:       title.split(' ')[0] || title,
+    handle:           customUrl || `channel/${ch.id}`,
+    email:            extractEmail(desc) || extractEmail(brandDesc) || null,
+    avg_views:        metrics.avg_views,
+    avg_likes:        metrics.avg_likes,
+    avg_comments:     metrics.avg_comments,
+    like_ratio:       metrics.like_ratio,
+    comment_ratio:    metrics.comment_ratio,
+    subscriber_count: subs,
+    niche:            getNiche(title, desc, keywords),
+    channel_url:      channelUrl,
+    video_count:      videoCount,
+    total_views:      totalViews,
+    country:          country || null,
+    upload_frequency: metrics.upload_frequency,
+    thumbnail_url:    thumbnail || null,
+    ideal_price:      metrics.ideal_price,
+    last_posted_at:   metrics.last_posted_at,
+  };
+}
+
 module.exports = {
   startScheduler, executeBatch, getState, getLastResults, generateExcel,
   initDb, RESULTS_PATH, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch, resetEnrichment,
+  getManualSentBatches, toggleManualSent, markInstantlySent, resetSentLast2Days,
+  generatePersonalization, enrichNewCreators, enrichBatch, resetEnrichment,
+  lookupCreator,
 };

@@ -8,7 +8,9 @@ const cors = require('cors');
 const {
   startScheduler, executeBatch, getState, getLastResults,
   generateExcel, initDb, getApiKeys, getLogs, pushToInstantly,
-  getManualSentBatches, toggleManualSent, markInstantlySent, generatePersonalization, enrichNewCreators, enrichBatch, resetEnrichment,
+  getManualSentBatches, toggleManualSent, markInstantlySent, resetSentLast2Days,
+  generatePersonalization, enrichNewCreators, enrichBatch, resetEnrichment,
+  lookupCreator,
 } = require('./scheduler');
 
 const app = express();
@@ -200,6 +202,14 @@ app.post('/api/instantly/push', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── RESET SENT (last 2 days) ────────────────────────────────────────────────
+app.post('/api/reset-sent', async (req, res) => {
+  try {
+    const count = await resetSentLast2Days();
+    res.json({ ok: true, reset: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── MANUAL SEND TRACKING ────────────────────────────────────────────────────
 app.get('/api/batches/manual-sent', (req, res) => {
   res.json({ batches: getManualSentBatches() });
@@ -211,6 +221,19 @@ app.post('/api/batches/:batch/toggle-manual-sent', async (req, res) => {
   try {
     const isSent = await toggleManualSent(batch);
     res.json({ batchNumber: batch, manuallySent: isSent });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── CREATOR LOOKUP ──────────────────────────────────────────────────────────
+app.post('/api/lookup', async (req, res) => {
+  const { channel } = req.body;
+  if (!channel || !channel.trim()) return res.status(400).json({ error: 'channel is required' });
+  const keys = getApiKeys();
+  if (!keys.length) return res.status(400).json({ error: 'No YouTube API keys configured' });
+  try {
+    const result = await lookupCreator(channel.trim());
+    if (!result) return res.status(404).json({ error: 'Channel not found or no videos available' });
+    res.json(result);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
