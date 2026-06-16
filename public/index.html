@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Chubiez YouTube Finder</title>
+<title>Bemellou YouTube Finder</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -192,7 +192,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
     <div class="sidebar-header">
       <div class="logo-row">
         <div class="logo-mark">C</div>
-        <h1>Chubiez YouTube<br>Influencer Finder</h1>
+        <h1>Bemellou YouTube<br>Influencer Finder</h1>
       </div>
       <div class="status-pill">
         <span class="dot dot-gray" id="status-dot"></span>
@@ -299,6 +299,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f0f;color:#f0f0f0;display:fle
     <button class="sort-btn" onclick="setSort('like')" id="sort-like">Like %</button>
     <button class="sort-btn" onclick="setSort('comment')" id="sort-comment">Comment %</button>
     <button class="sort-btn" onclick="setSort('freq')" id="sort-freq">Upload Freq</button>
+    <button class="sort-btn" onclick="setSort('commission')" id="sort-commission" style="border-color:#1e3a5f;color:#60a5fa">Commission Fit ↓</button>
     <span class="filter-sep">|</span>
     <span class="filter-label">Niche</span>
     <select id="niche-filter" onchange="renderCards()" style="background:#1e1e1e;border:1px solid #222;border-radius:6px;color:#aaa;font-size:12px;padding:4px 8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
@@ -490,6 +491,7 @@ function getSortedFiltered() {
   else if (sortBy === 'like') filtered.sort((a, b) => Number(b.like_ratio || 0) - Number(a.like_ratio || 0));
   else if (sortBy === 'comment') filtered.sort((a, b) => Number(b.comment_ratio || 0) - Number(a.comment_ratio || 0));
   else if (sortBy === 'freq') filtered.sort((a, b) => Number(b.upload_frequency || 0) - Number(a.upload_frequency || 0));
+  else if (sortBy === 'commission') filtered.sort((a, b) => Number(b.commission_score || 0) - Number(a.commission_score || 0));
   return filtered;
 }
 
@@ -558,6 +560,7 @@ function renderCards() {
           <div class="metric${hlFreq}"><div class="ml">Uploads/mo</div><div class="mv">${fmtFreq(freq)}</div></div>
           <div class="metric"><div class="ml">Total views</div><div class="mv">${fmt(r.total_views)}</div></div>
           ${r.ideal_price != null ? `<div class="metric" style="border-color:#1a3a1a"><div class="ml" style="color:#4ade80">Ideal price</div><div class="mv" style="color:#4ade80">$${Number(r.ideal_price).toFixed(2)}</div></div>` : ''}
+          ${r.commission_score != null ? `<div class="metric" style="border-color:${r.commission_score >= 70 ? '#1e3a5f' : r.commission_score >= 45 ? '#2a2a1a' : '#2a2a2a'}"><div class="ml" style="color:${r.commission_score >= 70 ? '#60a5fa' : r.commission_score >= 45 ? '#facc15' : '#666'}">Commission fit</div><div class="mv" style="color:${r.commission_score >= 70 ? '#60a5fa' : r.commission_score >= 45 ? '#facc15' : '#888'}">${r.commission_score}/100</div></div>` : ''}
           ${r.last_posted_at ? `<div class="metric"><div class="ml">Last posted</div><div class="mv" style="font-size:11px">${fmtDate(r.last_posted_at)}</div></div>` : ''}
         </div>
         <div class="footer-row">

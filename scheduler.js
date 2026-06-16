@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 require('dotenv').config();
 const axios = require('axios');
 const XLSX = require('xlsx');
@@ -93,6 +93,7 @@ async function initDb() {
     ['looking_forward', 'TEXT'],
     ['ideal_price', 'NUMERIC'],
     ['last_posted_at', 'TEXT'],
+    ['commission_score', 'NUMERIC'],
   ];
   for (const [col, type] of newCols) {
     await p.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS ${col} ${type}`).catch(() => {});
@@ -115,8 +116,8 @@ async function saveCreator(row) {
       INSERT INTO creators
         (first_name,handle,email,avg_views,avg_likes,avg_comments,like_ratio,comment_ratio,
          subscriber_count,niche,channel_url,date_found,batch_number,video_count,total_views,
-         country,upload_frequency,thumbnail_url,ideal_price,last_posted_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+         country,upload_frequency,thumbnail_url,ideal_price,last_posted_at,commission_score)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
       ON CONFLICT (handle) DO UPDATE SET
         avg_views=EXCLUDED.avg_views, avg_likes=EXCLUDED.avg_likes,
         avg_comments=EXCLUDED.avg_comments, like_ratio=EXCLUDED.like_ratio,
@@ -125,12 +126,13 @@ async function saveCreator(row) {
         niche=EXCLUDED.niche, video_count=EXCLUDED.video_count,
         total_views=EXCLUDED.total_views, country=EXCLUDED.country,
         upload_frequency=EXCLUDED.upload_frequency, thumbnail_url=EXCLUDED.thumbnail_url,
-        ideal_price=EXCLUDED.ideal_price, last_posted_at=EXCLUDED.last_posted_at
+        ideal_price=EXCLUDED.ideal_price, last_posted_at=EXCLUDED.last_posted_at,
+        commission_score=EXCLUDED.commission_score
     `, [row.first_name, row.handle, row.email, row.avg_views, row.avg_likes,
         row.avg_comments, row.like_ratio, row.comment_ratio, row.subscriber_count,
         row.niche, row.channel_url, row.date_found, row.batch_number,
         row.video_count, row.total_views, row.country, row.upload_frequency, row.thumbnail_url,
-        row.ideal_price, row.last_posted_at]);
+        row.ideal_price, row.last_posted_at, row.commission_score]);
   } catch (e) { log(`Save error ${row.handle}: ${e.message}`); }
 }
 
@@ -476,6 +478,24 @@ const SEARCH_QUERIES = [
   // Additional discovery
   'small creator vlog aesthetic','slow youtube vlog','cozy content creator',
   'wellness vlog 2025','healing vlog 2025','authentic vlog lifestyle',
+
+  // Nano/micro creator discovery — commission-likely
+  'ugc creator mental health','ugc content creator cozy','nano influencer vlog',
+  'micro influencer lifestyle vlog','small youtuber mental health',
+  'growing youtube channel mental health','new youtuber anxiety vlog',
+  'small channel cozy vlog','small channel kawaii vlog',
+  'brand collab mental health creator','affiliate creator mental health',
+  'commission collab creator vlog','small creator brand deals vlog',
+  'ugc mental health content','ugc cozy aesthetic content',
+  'content creator journey mental health','youtube growth vlog mental health',
+  'youtube journey small creator cozy','mental health creator 2025',
+  'cozy creator 2025 vlog','healing content creator 2025',
+  'small youtuber neurodivergent','adhd small creator vlog',
+  'anxiety creator vlog 2025','depression awareness small channel',
+  'self love content creator vlog','soft life small creator',
+  'kawaii small channel vlog','plushie content creator vlog',
+  'stuffed animal collector vlog small','squishmallow small channel',
+  'emotional support plushie vlog','comfort content creator vlog',
 ];
 
 // Deduplicate
@@ -508,6 +528,44 @@ function getNiche(title = '', description = '', keywords = '') {
   if (/anime|ghibli|manga/.test(text)) return 'anime';
   if (/pet|cat vlog|dog vlog|kitten/.test(text)) return 'pets';
   return 'lifestyle';
+}
+
+// ─── COMMISSION SCORE ────────────────────────────────────────────────────────
+// 0–100 signal: how likely is this creator to accept an affiliate/commission deal?
+// Higher = nano audience, high engagement, no existing sponsors, email in bio.
+function computeCommissionScore({ subscriberCount, commentRatio, likeRatio, email, uploadFrequency, niche, description }) {
+  let score = 0;
+
+  // Subscriber tier — nano/micro are most commission-hungry (0-40 pts)
+  if (subscriberCount < 5000)        score += 40;
+  else if (subscriberCount < 25000)  score += 32;
+  else if (subscriberCount < 75000)  score += 22;
+  else if (subscriberCount < 150000) score += 10;
+
+  // Engagement depth — comments signal loyal community, not passive scrollers (0-30 pts)
+  if (commentRatio >= 0.025)      score += 30;
+  else if (commentRatio >= 0.012) score += 22;
+  else if (commentRatio >= 0.006) score += 14;
+  else if (commentRatio >= 0.002) score += 6;
+
+  // Email in bio — actively seeking brand partnerships (0-15 pts)
+  if (email && email !== 'Not listed') score += 15;
+
+  // Active uploader — not dormant (0-10 pts)
+  if (uploadFrequency >= 4)      score += 10;
+  else if (uploadFrequency >= 2) score += 7;
+  else if (uploadFrequency >= 1) score += 4;
+
+  // No existing sponsorship language — not locked into exclusivity deals (0-10 pts)
+  const desc = (description || '').toLowerCase();
+  const sponsorSignals = /sponsored by|this video is sponsored|in partnership with|paid partnership|#ad\b|#sponsored\b|use code \w+ for|affiliate link|amazon storefront/;
+  if (!sponsorSignals.test(desc)) score += 10;
+
+  // Niche alignment — Bemellou's natural territory converts better on commission (0-5 pts)
+  const commissionNiches = ['mental health', 'neurodivergent', 'cozy lifestyle', 'kawaii/plush', 'asmr', 'emotional healing', 'chronic illness', 'introvert lifestyle'];
+  if (commissionNiches.includes(niche)) score += 5;
+
+  return Math.min(100, Math.round(score));
 }
 
 // ─── EMAIL EXTRACTION ─────────────────────────────────────────────────────────
@@ -601,7 +659,7 @@ async function fetchChannelMetrics(ch, km) {
 }
 
 // ─── MAIN BATCH ───────────────────────────────────────────────────────────────
-const TARGET = 200;
+const TARGET = 500;
 
 async function runBatch(km) {
   const batchNum = (liveState.batchNumber || 0) + 1;
@@ -671,8 +729,7 @@ async function runBatch(km) {
       for (const ch of data?.items || []) {
         const subs = parseInt(ch.statistics?.subscriberCount || 0);
         const videoCount = parseInt(ch.statistics?.videoCount || 0);
-        if (subs < 500) continue;
-        if (videoCount < 5) continue;
+        if (subs < 1000 || subs > 150000) continue; // micro/nano only — most likely to do commission
 
         const desc = ch.snippet?.description || '';
         const brandDesc = ch.brandingSettings?.channel?.description || '';
@@ -730,18 +787,13 @@ async function runBatch(km) {
 
       const plItems = plData?.items || [];
       const videoIds = plItems.map(i => i.contentDetails?.videoId).filter(Boolean);
-      if (videoIds.length < 3) {
+      if (videoIds.length < 1) {
         await markSeenBatch([ch.id]);
         await sleep(100);
         continue;
       }
 
-      // Recency check — most recent video must be within 90 days
       const mostRecentDate = plItems[0]?.contentDetails?.videoPublishedAt;
-      if (mostRecentDate) {
-        const daysSince = (Date.now() - new Date(mostRecentDate).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSince > 90) { await markSeenBatch([ch.id]); await sleep(100); continue; }
-      }
 
       // Fetch video stats
       const vidData = await ytGet('videos', {
@@ -756,13 +808,8 @@ async function runBatch(km) {
       const avgLikes    = stats.reduce((s, v) => s + parseInt(v.statistics?.likeCount   || 0), 0) / stats.length;
       const avgComments = stats.reduce((s, v) => s + parseInt(v.statistics?.commentCount|| 0), 0) / stats.length;
 
-      // Quality thresholds
-      if (avgViews < 1000) { await markSeenBatch([ch.id]); await sleep(100); continue; }
-
       const likeRatio    = avgViews > 0 ? avgLikes    / avgViews : 0;
       const commentRatio = avgViews > 0 ? avgComments / avgViews : 0;
-
-      if (likeRatio < 1 / 15 && commentRatio < 1 / 150) { await markSeenBatch([ch.id]); await sleep(100); continue; }
 
       // Channel age & upload frequency
       const ageMs = Date.now() - new Date(ch.publishedAt || 0).getTime();
@@ -776,6 +823,17 @@ async function runBatch(km) {
         ? `https://youtube.com/${ch.customUrl}`
         : `https://youtube.com/channel/${ch.id}`;
 
+      const detectedNiche = getNiche(ch.title, ch.description, ch.keywords);
+      const commissionScore = computeCommissionScore({
+        subscriberCount: ch.subscriberCount,
+        commentRatio,
+        likeRatio,
+        email: ch.email,
+        uploadFrequency,
+        niche: detectedNiche,
+        description: ch.description,
+      });
+
       const creator = {
         first_name: ch.title.split(' ')[0] || ch.title,
         handle,
@@ -785,25 +843,26 @@ async function runBatch(km) {
         avg_comments:     Math.round(avgComments),
         like_ratio:       parseFloat(likeRatio.toFixed(4)),
         comment_ratio:    parseFloat(commentRatio.toFixed(4)),
-        subscriber_count: ch.subscriberCount,
-        niche:            getNiche(ch.title, ch.description, ch.keywords),
-        channel_url:      channelUrl,
-        date_found:       new Date().toISOString().split('T')[0],
-        batch_number:     batchNum,
-        video_count:      ch.videoCount,
-        total_views:      ch.totalViews,
-        country:          ch.country || null,
-        upload_frequency: uploadFrequency,
-        thumbnail_url:    ch.thumbnail || null,
-        ideal_price:      idealPrice,
-        last_posted_at:   mostRecentDate || null,
+        subscriber_count:  ch.subscriberCount,
+        niche:             detectedNiche,
+        channel_url:       channelUrl,
+        date_found:        new Date().toISOString().split('T')[0],
+        batch_number:      batchNum,
+        video_count:       ch.videoCount,
+        total_views:       ch.totalViews,
+        country:           ch.country || null,
+        upload_frequency:  uploadFrequency,
+        thumbnail_url:     ch.thumbnail || null,
+        ideal_price:       idealPrice,
+        last_posted_at:    mostRecentDate || null,
+        commission_score:  commissionScore,
       };
 
       await saveCreator(creator);
       await markSeenBatch([ch.id]);
       creators.push(creator);
 
-      log(`✓ [${creators.length}/${TARGET}] ${ch.title} | ${fmtNum(avgViews)} avg views | $${idealPrice}/post | ${creator.niche}${creator.email ? ' | 📧' : ''}`);
+      log(`✓ [${creators.length}/${TARGET}] ${ch.title} | ${fmtNum(ch.subscriberCount)} subs | ${fmtNum(avgViews)} avg views | commission:${commissionScore} | ${creator.niche}${creator.email ? ' | 📧' : ''}`);
 
       if (creators.length % 50 === 0) {
         await persistState({ totalFound: (liveState.totalFound || 0) });
@@ -848,7 +907,7 @@ async function generatePersonalization(rows) {
     avg_views: r.avg_views || 0,
   }));
 
-  const prompt = `You are writing personalized outreach data for a comfort plushie brand (Chubiez) targeting mental health / neurodivergent YouTube creators.
+  const prompt = `You are writing personalized outreach data for a comfort plushie brand (Bemellou) targeting mental health / neurodivergent YouTube creators.
 
 For each creator below, generate 3 fields:
 
@@ -905,6 +964,7 @@ const EXCEL_COLS = [
   { key: 'thumbnail_url', header: 'Thumbnail URL', width: 45 },
   { key: 'date_found', header: 'Date Found', width: 12 },
   { key: 'batch_number', header: 'Batch', width: 8 },
+  { key: 'commission_score', header: 'Commission Score', width: 16 },
   { key: 'vibe', header: 'VIBE', width: 18 },
   { key: 'praise', header: 'PRAISE', width: 55 },
   { key: 'looking_forward', header: 'LOOKING FORWARD', width: 55 },
@@ -1122,7 +1182,7 @@ async function pushToInstantly(creators, apiKey, batchLabel) {
   }
 
   // Create a new campaign for this push
-  const campaignName = `Chubiez - ${batchLabel} - ${new Date().toISOString().slice(0, 10)}`;
+  const campaignName = `Bemellou - ${batchLabel} - ${new Date().toISOString().slice(0, 10)}`;
   log(`Creating Instantly campaign: "${campaignName}"`);
   const createRes = await fetch('https://api.instantly.ai/api/v1/campaign/create', {
     method: 'POST',
